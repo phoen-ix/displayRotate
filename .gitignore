@@ -1,0 +1,13 @@
+bin/
+obj/
+publish/
+*.user
+*.pdb
+.vs/
+
+# Packaging build artifacts
+packaging/RotateIt.exe
+packaging/rotateit.ico
+packaging/LICENSE
+packaging/RotateIt-Setup-*.exe
+app.ico
