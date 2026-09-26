@@ -14,7 +14,7 @@ Unicode true
 !define EXE "RotateIt.exe"
 !define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP}"
 !define RUN_KEY "Software\Microsoft\Windows\CurrentVersion\Run"
-!define DOTNET_URL "https://dotnet.microsoft.com/download/dotnet/8.0"
+!define DOTNET_URL "https://dotnet.microsoft.com/download/dotnet/10.0"
 
 Name "${APP} ${VERSION}"
 OutFile "RotateIt-Setup-${VERSION}.exe"
@@ -64,15 +64,15 @@ Function LaunchApp
   Exec '"$WINDIR\explorer.exe" "$INSTDIR\${EXE}"'
 FunctionEnd
 
-; ---- ensure .NET 8 Desktop Runtime ----
+; ---- ensure .NET 10 Desktop Runtime ----
 Function EnsureDotnet
-  FindFirst $0 $1 "$PROGRAMFILES64\dotnet\shared\Microsoft.WindowsDesktop.App\8.*"
+  FindFirst $0 $1 "$PROGRAMFILES64\dotnet\shared\Microsoft.WindowsDesktop.App\10.*"
   FindClose $0
   ${If} $1 != ""
-    DetailPrint ".NET 8 Desktop Runtime found ($1)."
+    DetailPrint ".NET 10 Desktop Runtime found ($1)."
     Return
   ${EndIf}
-  DetailPrint ".NET 8 Desktop Runtime (x64) not found."
+  DetailPrint ".NET 10 Desktop Runtime (x64) not found."
 
   nsExec::ExecToStack '"$SYSDIR\where.exe" winget'
   Pop $0
@@ -89,8 +89,8 @@ Function EnsureDotnet
     Return
   ${EndIf}
 
-  DetailPrint "Installing .NET 8 Desktop Runtime via winget..."
-  nsExec::ExecToLog '"$3" install --id Microsoft.DotNet.DesktopRuntime.8 -e --silent --accept-package-agreements --accept-source-agreements'
+  DetailPrint "Installing .NET 10 Desktop Runtime via winget..."
+  nsExec::ExecToLog '"$3" install --id Microsoft.DotNet.DesktopRuntime.10 -e --silent --accept-package-agreements --accept-source-agreements'
   Pop $0
   ${If} $0 != 0
     Call DotnetManual
@@ -121,7 +121,7 @@ Function FirstLine
 FunctionEnd
 
 Function DotnetManual
-  MessageBox MB_YESNO|MB_ICONEXCLAMATION "${APP} requires the .NET 8 Desktop Runtime (x64), which isn't installed and couldn't be installed automatically.$\n$\nOpen the download page now?" IDNO +2
+  MessageBox MB_YESNO|MB_ICONEXCLAMATION "${APP} requires the .NET 10 Desktop Runtime (x64), which isn't installed and couldn't be installed automatically.$\n$\nOpen the download page now?" IDNO +2
   ExecShell "open" "${DOTNET_URL}"
 FunctionEnd
 
