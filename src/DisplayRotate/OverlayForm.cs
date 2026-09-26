@@ -1,4 +1,4 @@
-namespace RotateIt;
+namespace DisplayRotate;
 
 internal sealed class OverlayForm : Form
 {

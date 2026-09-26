@@ -1,7 +1,7 @@
 using System.Drawing.Drawing2D;
-using static RotateIt.NativeMethods;
+using static DisplayRotate.NativeMethods;
 
-namespace RotateIt;
+namespace DisplayRotate;
 
 internal sealed class TrayApp : ApplicationContext
 {
@@ -16,7 +16,7 @@ internal sealed class TrayApp : ApplicationContext
         _trayIcon = new NotifyIcon
         {
             Icon = CreateRotationIcon(),
-            Text = "RotateIt",
+            Text = "DisplayRotate",
             Visible = true,
             ContextMenuStrip = BuildMenu()
         };
@@ -43,7 +43,7 @@ internal sealed class TrayApp : ApplicationContext
         if (_hotkeyWindow.FailedBindings.Count > 0)
         {
             var names = string.Join("\n", _hotkeyWindow.FailedBindings.Select(b => $"  {b.FormatHotkey()} — {b.DisplayName}"));
-            _trayIcon.BalloonTipTitle = "RotateIt";
+            _trayIcon.BalloonTipTitle = "DisplayRotate";
             _trayIcon.BalloonTipText = $"Some hotkeys could not be registered (already in use):\n{names}";
             _trayIcon.BalloonTipIcon = ToolTipIcon.Warning;
             _trayIcon.ShowBalloonTip(3000);
@@ -144,7 +144,7 @@ internal sealed class TrayApp : ApplicationContext
                 {
                     var (success, message) = DisplayManager.Rotate(deviceName, orientation);
                     if (!success)
-                        MessageBox.Show(message, "RotateIt", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(message, "DisplayRotate", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     _trayIcon.ContextMenuStrip = BuildMenu();
                 };
                 menu.Items.Add(item);

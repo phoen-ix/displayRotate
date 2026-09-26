@@ -1,6 +1,6 @@
-using static RotateIt.NativeMethods;
+using static DisplayRotate.NativeMethods;
 
-namespace RotateIt;
+namespace DisplayRotate;
 
 internal sealed class SettingsForm : Form
 {
@@ -18,7 +18,7 @@ internal sealed class SettingsForm : Form
     {
         _settings = settings;
 
-        Text = "RotateIt Settings";
+        Text = "DisplayRotate Settings";
         Size = new Size(580, 560);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;

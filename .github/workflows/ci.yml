@@ -29,10 +29,10 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Restore
-        run: dotnet restore RotateIt/RotateIt.csproj -p:EnableWindowsTargeting=true
+        run: dotnet restore src/DisplayRotate/DisplayRotate.csproj -p:EnableWindowsTargeting=true
 
       - name: Build
-        run: dotnet build RotateIt/RotateIt.csproj -c Release --no-restore -p:EnableWindowsTargeting=true
+        run: dotnet build src/DisplayRotate/DisplayRotate.csproj -c Release --no-restore -p:EnableWindowsTargeting=true
 
       # `dotnet list package` restores again, so it needs EnableWindowsTargeting
       # too (MSBuild reads it from the environment). Require the positive message:
@@ -41,7 +41,7 @@ jobs:
         env:
           EnableWindowsTargeting: "true"
         run: |
-          out=$(dotnet list RotateIt/RotateIt.csproj package --vulnerable --include-transitive)
+          out=$(dotnet list src/DisplayRotate/DisplayRotate.csproj package --vulnerable --include-transitive)
           echo "$out"
           grep -q "has no vulnerable packages" <<< "$out"
 
@@ -59,7 +59,7 @@ jobs:
       - name: Compile the installer script
         working-directory: packaging
         run: |
-          : > RotateIt.exe
-          cp ../RotateIt/app.ico rotateit.ico
+          : > DisplayRotate.exe
+          cp ../src/DisplayRotate/app.ico displayrotate.ico
           cp ../LICENSE .
-          makensis -WX -V2 -DVERSION=0.0.0 rotateit.nsi
+          makensis -WX -V2 -DVERSION=0.0.0 displayrotate.nsi

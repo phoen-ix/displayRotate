@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace RotateIt;
+namespace DisplayRotate;
 
 internal static class NativeMethods
 {

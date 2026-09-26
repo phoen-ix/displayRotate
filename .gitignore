@@ -6,8 +6,8 @@ publish/
 .vs/
 
 # Packaging build artifacts
-packaging/RotateIt.exe
-packaging/rotateit.ico
+packaging/DisplayRotate.exe
+packaging/displayrotate.ico
 packaging/LICENSE
-packaging/RotateIt-Setup-*.exe
+packaging/DisplayRotate-Setup-*.exe
 app.ico

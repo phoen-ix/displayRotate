@@ -1,4 +1,4 @@
-namespace RotateIt;
+namespace DisplayRotate;
 
 static class Program
 {
@@ -97,7 +97,7 @@ static class Program
             var display = DisplayManager.GetDisplays().FirstOrDefault(d => d.Index == displayIndex);
             if (display is null)
             {
-                Console.WriteLine($"\n  Display {displayIndex} not found. Use 'RotateIt list' to see available displays.\n");
+                Console.WriteLine($"\n  Display {displayIndex} not found. Use 'DisplayRotate list' to see available displays.\n");
                 return;
             }
             deviceName = display.DeviceName;
@@ -110,13 +110,13 @@ static class Program
     private static void PrintUsage()
     {
         Console.WriteLine(@"
-  RotateIt — Screen Rotation Tool
+  DisplayRotate — Screen Rotation Tool
 
   Usage:
-    RotateIt                       Start in system tray
-    RotateIt list                  List connected displays
-    RotateIt rotate <angle>        Rotate primary display (0, 90, 180, 270)
-    RotateIt rotate <#> <angle>    Rotate display # to angle
+    DisplayRotate                       Start in system tray
+    DisplayRotate list                  List connected displays
+    DisplayRotate rotate <angle>        Rotate primary display (0, 90, 180, 270)
+    DisplayRotate rotate <#> <angle>    Rotate display # to angle
 
   Hotkeys (when running in tray):
     Ctrl+Alt+Up      Rotate primary to 0° (Landscape)

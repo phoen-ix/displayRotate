@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
-using static RotateIt.NativeMethods;
+using static DisplayRotate.NativeMethods;
 
-namespace RotateIt;
+namespace DisplayRotate;
 
 public record DisplayInfo(
     int Index,

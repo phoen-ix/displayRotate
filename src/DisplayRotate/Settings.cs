@@ -1,9 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Win32;
-using static RotateIt.NativeMethods;
+using static DisplayRotate.NativeMethods;
 
-namespace RotateIt;
+namespace DisplayRotate;
 
 public class HotkeyBinding
 {
@@ -64,7 +64,7 @@ public class AppSettings
 
     public static string GetSettingsPath() =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "RotateIt", "settings.json");
+            "DisplayRotate", "settings.json");
 
     public static AppSettings Load()
     {
@@ -113,9 +113,9 @@ public class AppSettings
         if (key == null) return;
 
         if (StartWithWindows)
-            key.SetValue("RotateIt", $"\"{Application.ExecutablePath}\"");
+            key.SetValue("DisplayRotate", $"\"{Application.ExecutablePath}\"");
         else
-            key.DeleteValue("RotateIt", throwOnMissingValue: false);
+            key.DeleteValue("DisplayRotate", throwOnMissingValue: false);
     }
 
     public void RestoreOrientations()

@@ -1,23 +1,23 @@
-; RotateIt installer - NSIS script
+; DisplayRotate installer - NSIS script
 ;
-;   makensis /DVERSION=<v> rotateit.nsi  ->  RotateIt-Setup-<v>.exe
+;   makensis /DVERSION=<v> displayrotate.nsi  ->  DisplayRotate-Setup-<v>.exe
 ;
-; Run from THIS folder after placing RotateIt.exe (published single-file) here.
+; Run from THIS folder after placing DisplayRotate.exe (published single-file) here.
 
 Unicode true
 
 !ifndef VERSION
   !define VERSION "0.0.0"
 !endif
-!define APP "RotateIt"
-!define PUBLISHER "RotateIt"
-!define EXE "RotateIt.exe"
+!define APP "DisplayRotate"
+!define PUBLISHER "DisplayRotate"
+!define EXE "DisplayRotate.exe"
 !define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP}"
 !define RUN_KEY "Software\Microsoft\Windows\CurrentVersion\Run"
 !define DOTNET_URL "https://dotnet.microsoft.com/download/dotnet/10.0"
 
 Name "${APP} ${VERSION}"
-OutFile "RotateIt-Setup-${VERSION}.exe"
+OutFile "DisplayRotate-Setup-${VERSION}.exe"
 BrandingText "${APP} ${VERSION}"
 
 !include "MUI2.nsh"
@@ -35,12 +35,12 @@ BrandingText "${APP} ${VERSION}"
 !include "MultiUser.nsh"
 
 ; ---- UI ----
-!define MUI_ICON "rotateit.ico"
-!define MUI_UNICON "rotateit.ico"
+!define MUI_ICON "displayrotate.ico"
+!define MUI_UNICON "displayrotate.ico"
 !define MUI_ABORTWARNING
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_TEXT "Launch RotateIt now"
+!define MUI_FINISHPAGE_RUN_TEXT "Launch DisplayRotate now"
 !define MUI_FINISHPAGE_RUN_FUNCTION "LaunchApp"
 
 !insertmacro MUI_PAGE_WELCOME
@@ -128,18 +128,18 @@ FunctionEnd
 ; ---- sections ----
 Section "-Core" SEC_CORE
   SectionIn RO
-  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM RotateIt.exe'
+  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM DisplayRotate.exe'
 
   SetOutPath "$INSTDIR"
   File "${EXE}"
-  File "rotateit.ico"
+  File "displayrotate.ico"
   File "LICENSE"
 
   WriteUninstaller "$INSTDIR\uninstall.exe"
   WriteRegStr   SHCTX "${UNINST_KEY}" "DisplayName"     "${APP}"
   WriteRegStr   SHCTX "${UNINST_KEY}" "DisplayVersion"  "${VERSION}"
   WriteRegStr   SHCTX "${UNINST_KEY}" "Publisher"       "${PUBLISHER}"
-  WriteRegStr   SHCTX "${UNINST_KEY}" "DisplayIcon"     "$INSTDIR\rotateit.ico"
+  WriteRegStr   SHCTX "${UNINST_KEY}" "DisplayIcon"     "$INSTDIR\displayrotate.ico"
   WriteRegStr   SHCTX "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr   SHCTX "${UNINST_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
   WriteRegStr   SHCTX "${UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
@@ -152,14 +152,14 @@ Section "-Core" SEC_CORE
 SectionEnd
 
 Section "Start Menu shortcut" SEC_SM
-  CreateShortcut "$SMPROGRAMS\${APP}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\rotateit.ico" 0
+  CreateShortcut "$SMPROGRAMS\${APP}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\displayrotate.ico" 0
 SectionEnd
 
 Section "Desktop shortcut" SEC_DESK
-  CreateShortcut "$DESKTOP\${APP}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\rotateit.ico" 0
+  CreateShortcut "$DESKTOP\${APP}.lnk" "$INSTDIR\${EXE}" "" "$INSTDIR\displayrotate.ico" 0
 SectionEnd
 
-Section "Start RotateIt at login" SEC_AUTO
+Section "Start DisplayRotate at login" SEC_AUTO
   WriteRegStr HKCU "${RUN_KEY}" "${APP}" '"$INSTDIR\${EXE}"'
 SectionEnd
 
@@ -169,18 +169,18 @@ Function .onInit
 FunctionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_SM}   "Add a RotateIt shortcut to the Start Menu."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_DESK} "Add a RotateIt shortcut to the Desktop."
-  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_AUTO} "Start RotateIt automatically when you sign in."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_SM}   "Add a DisplayRotate shortcut to the Start Menu."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_DESK} "Add a DisplayRotate shortcut to the Desktop."
+  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_AUTO} "Start DisplayRotate automatically when you sign in."
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 ; ---- uninstall ----
 Section "Uninstall"
-  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM RotateIt.exe'
+  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM DisplayRotate.exe'
   SetOutPath "$TEMP"
 
   Delete "$INSTDIR\${EXE}"
-  Delete "$INSTDIR\rotateit.ico"
+  Delete "$INSTDIR\displayrotate.ico"
   Delete "$INSTDIR\LICENSE"
   Delete "$SMPROGRAMS\${APP}.lnk"
   Delete "$DESKTOP\${APP}.lnk"
