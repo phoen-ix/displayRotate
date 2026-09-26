@@ -1,13 +1,14 @@
 bin/
 obj/
-publish/
+publish*/
 *.user
 *.pdb
 .vs/
+TestResults/
 
-# Packaging build artifacts
+# Packaging: staged exes and build outputs (packaging/build.bat, build.sh, ci.yml)
 packaging/DisplayRotate.exe
-packaging/displayrotate.ico
-packaging/LICENSE
-packaging/DisplayRotate-Setup-*.exe
-app.ico
+packaging/DisplayRotate-min.exe
+DisplayRotate-Setup-*.exe
+DisplayRotate-*.zip
+SHA256SUMS.txt

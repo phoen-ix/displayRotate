@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Everything DisplayRotate decides that does not need a window: the version, the names the
+       installer shares with the app, and the whole updater. Plain net10.0, so the test project
+       can reference it and run on Linux - a project referencing the WinForms app would inherit
+       Microsoft.WindowsDesktop.App and only run on Windows. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>DisplayRotate.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DisplayRotate.Tests" />
+  </ItemGroup>
+
+</Project>

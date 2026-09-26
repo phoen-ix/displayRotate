@@ -38,6 +38,12 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+    [DllImport("user32.dll")]
+    public static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
+
+    /// <summary>Puts the UAC shield on a button (it must be FlatStyle.System).</summary>
+    public const int BCM_SETSHIELD = 0x160C;
+
     public const int SW_HIDE = 0;
 
     // --- Constants ---

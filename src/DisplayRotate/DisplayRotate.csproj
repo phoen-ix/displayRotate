@@ -1,12 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>app.ico</ApplicationIcon>
+    <RootNamespace>DisplayRotate</RootNamespace>
+    <AssemblyName>DisplayRotate</AssemblyName>
+    <!-- Publish shape (self-contained or not, single-file) stays on the command line, so one
+         csproj yields both the full and the minimal build - see ci.yml, release job. -->
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../DisplayRotate.Core/DisplayRotate.Core.csproj" />
+  </ItemGroup>
 
 </Project>

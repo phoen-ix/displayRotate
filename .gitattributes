@@ -1,0 +1,14 @@
+# Line endings are a property of this repo, not of the machine that cloned it. A Windows
+# clone (core.autocrlf defaults to true there, including on the GitHub Actions windows
+# runners) would otherwise check every file out as CRLF - and the pinning tests that read
+# packaging/displayrotate.nsi line by line would see a different file on each OS.
+* text=auto eol=lf
+
+# Batch is CRLF's native habitat - a label or goto can misbehave with bare LF.
+*.bat text eol=crlf
+
+# Never munge these.
+*.ico binary
+*.png binary
+*.exe binary
+*.zip binary

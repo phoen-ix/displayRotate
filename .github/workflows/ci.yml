@@ -5,61 +5,473 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Release this commit: which part of the version to bump (none = checks only)'
+        required: true
+        default: patch
+        type: choice
+        options: [patch, minor, major, none]
 
 permissions:
   contents: read
 
-# A newer push to the same branch cancels the run it supersedes.
+# A newer push to a PR cancels the run it supersedes. Runs on master never cancel: one of them
+# may be half-way through tagging a release.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Linux runners on purpose (a Windows runner bills 2x on this private repo):
-# EnableWindowsTargeting compiles the WinForms app, but CI cannot run it and
-# there are no tests - the first run of a build is still on Windows.
+# Every action is pinned to a commit SHA (Dependabot proposes the bumps, .github/dependabot.yml).
+# The release job needs every other job, and a test (InstallerContractTests) keeps it that way.
 jobs:
   build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          # The SDK is chosen by global.json: setup-dotnet installs alongside what the image
+          # ships and `dotnet` picks the newest, so a bare dotnet-version would pin nothing.
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build DisplayRotate.slnx -c Release
+
+      - name: Test
+        run: dotnet test --solution DisplayRotate.slnx -c Release --no-build
+
+  linux:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: "10.0.x"
+          global-json-file: global.json
 
-      - name: Restore
-        run: dotnet restore src/DisplayRotate/DisplayRotate.csproj -p:EnableWindowsTargeting=true
-
+      # EnableWindowsTargeting (Directory.Build.props) lets the WinForms app build here; the
+      # tests reference DisplayRotate.Core only, so they run here too.
       - name: Build
-        run: dotnet build src/DisplayRotate/DisplayRotate.csproj -c Release --no-restore -p:EnableWindowsTargeting=true
+        run: dotnet build DisplayRotate.slnx -c Release
 
-      # `dotnet list package` restores again, so it needs EnableWindowsTargeting
-      # too (MSBuild reads it from the environment). Require the positive message:
-      # a failed restore must not read as "no vulnerabilities".
+      - name: Test
+        run: dotnet test --solution DisplayRotate.slnx -c Release --no-build
+
+      # Require the positive message: a failed restore must not read as "no vulnerabilities".
       - name: Audit NuGet packages (fail on any known vulnerability)
-        env:
-          EnableWindowsTargeting: "true"
         run: |
-          out=$(dotnet list src/DisplayRotate/DisplayRotate.csproj package --vulnerable --include-transitive)
+          out=$(dotnet list DisplayRotate.slnx package --vulnerable --include-transitive)
           echo "$out"
-          grep -q "has no vulnerable packages" <<< "$out"
+          if grep -q "has the following vulnerable packages" <<< "$out"; then exit 1; fi
+          [ "$(grep -c "has no vulnerable packages" <<< "$out")" -ge 3 ]
 
   installer:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install NSIS
         run: sudo apt-get update -q && sudo apt-get install -y -q nsis
 
-      # build.bat copies the published exe, icon and licence next to the script;
-      # an empty stub exe is enough to prove the script compiles (warnings are errors).
-      - name: Compile the installer script
+      # Empty stub exes prove the script compiles; -WX: a warning here means the script is not
+      # doing what it reads like it does (an unreferenced function is one).
+      - name: Compile all three installers
         working-directory: packaging
         run: |
           : > DisplayRotate.exe
-          cp ../src/DisplayRotate/app.ico displayrotate.ico
-          cp ../LICENSE .
+          : > DisplayRotate-min.exe
           makensis -WX -V2 -DVERSION=0.0.0 displayrotate.nsi
+          makensis -WX -V2 -DVERSION=0.0.0 -DFULL_ONLY displayrotate.nsi
+          makensis -WX -V2 -DVERSION=0.0.0 -DMINIMAL_ONLY displayrotate.nsi
+
+  # The first place the app and its installer actually run on Windows: a real silent install,
+  # an upgrade while the app is running, and an uninstall, per-user and per-machine.
+  installer-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      UNINST_KEY_USER: HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DisplayRotate
+      # The installer is a 32-bit NSIS exe, so its per-machine entry lands in the WOW6432Node
+      # view - InstallRecord reads both views for exactly this reason.
+      UNINST_KEY_MACHINE: HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\DisplayRotate
+      SMOKE_VERSION: 9.9.9
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      # The release job's publishes, with a version injected the same way - so the exe this job
+      # installs and boots is the shipped layout, and --version proves -p:Version reached it.
+      - name: Publish both builds
+        shell: pwsh
+        run: |
+          dotnet publish src/DisplayRotate/DisplayRotate.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:Version=$env:SMOKE_VERSION -o publish-full
+          if ($LASTEXITCODE -ne 0) { throw "the self-contained publish failed" }
+          dotnet publish src/DisplayRotate/DisplayRotate.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:DebugType=none -p:Version=$env:SMOKE_VERSION -o publish-min
+          if ($LASTEXITCODE -ne 0) { throw "the framework-dependent publish failed" }
+          foreach ($exe in 'publish-full/DisplayRotate.exe', 'publish-min/DisplayRotate.exe') {
+            $v = (& $exe --version | Out-String).Trim()
+            if ($v -ne $env:SMOKE_VERSION) { throw "$exe --version printed '$v', expected $env:SMOKE_VERSION" }
+          }
+          "both builds report $env:SMOKE_VERSION"
+
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis --no-progress -y
+
+      - name: Build the standard and minimal installers
+        shell: pwsh
+        run: |
+          Copy-Item publish-full/DisplayRotate.exe packaging/DisplayRotate.exe -Force
+          Copy-Item publish-min/DisplayRotate.exe packaging/DisplayRotate-min.exe -Force
+          # A silent run of the STANDARD installer deploys the FULL build; the MINIMAL_ONLY one
+          # is what unpacks and boots the framework-dependent exe (per-machine minimal, below).
+          Push-Location packaging
+          & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" /WX /V2 "/DVERSION=$env:SMOKE_VERSION" displayrotate.nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed with $LASTEXITCODE" }
+          & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" /WX /V2 "/DVERSION=$env:SMOKE_VERSION" /DMINIMAL_ONLY displayrotate.nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis /DMINIMAL_ONLY failed with $LASTEXITCODE" }
+          Pop-Location
+          Add-Content -Path $env:GITHUB_ENV -Value "SETUP=$((Resolve-Path "packaging/DisplayRotate-Setup-$env:SMOKE_VERSION.exe").Path)"
+          Add-Content -Path $env:GITHUB_ENV -Value "SETUP_MIN=$((Resolve-Path "packaging/DisplayRotate-Setup-$env:SMOKE_VERSION-min.exe").Path)"
+
+      - name: Per-user - install silently and start the app
+        shell: pwsh
+        run: |
+          . .github/scripts/installer-smoke-helpers.ps1
+          # /RESTART: what the in-app updater passes, and only reachable through a silent run -
+          # the finish page's "Launch" checkbox covers the interactive case.
+          $p = Start-Process -FilePath $env:SETUP -ArgumentList '/S','/CurrentUser','/RESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "the installer exited with $($p.ExitCode)" }
+          if (-not (Test-Path $env:UNINST_KEY_USER)) { throw "nothing registered at $env:UNINST_KEY_USER" }
+          if (Test-Path $env:UNINST_KEY_MACHINE) { throw "a per-user install registered a per-machine entry too" }
+          $entry = Get-ItemProperty $env:UNINST_KEY_USER
+          "installed to $($entry.InstallLocation)"
+          $expected = Join-Path $env:LOCALAPPDATA 'Programs\DisplayRotate'
+          if ($entry.InstallLocation -ne $expected) { throw "installed to $($entry.InstallLocation), expected $expected" }
+          if ($entry.DisplayVersion -ne $env:SMOKE_VERSION) { throw "DisplayVersion is '$($entry.DisplayVersion)'" }
+          # What the updater reads to fetch the same build.
+          if ($entry.BuildVariant -ne 'full') { throw "BuildVariant is '$($entry.BuildVariant)', expected full" }
+          if (-not $entry.QuietUninstallString) { throw "no QuietUninstallString - Windows could not remove this silently" }
+          foreach ($f in 'DisplayRotate.exe', 'uninstall.exe', 'displayrotate.ico', 'LICENSE.txt') {
+            if (-not (Test-Path (Join-Path $entry.InstallLocation $f))) { throw "$f missing from the install folder" }
+          }
+          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\DisplayRotate.lnk'
+          if (-not (Test-Path $shortcut)) { throw "no Start Menu shortcut at $shortcut" }
+          # The installer writes no autostart entry: the app owns that setting.
+          $run = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -ErrorAction SilentlyContinue
+          if ($run -and $run.PSObject.Properties['DisplayRotate']) { throw "the installer wrote an autostart entry" }
+          Add-Content -Path $env:GITHUB_ENV -Value "INSTALL_DIR=$($entry.InstallLocation)"
+          Wait-AppStarted
+
+      - name: Per-user - upgrade in place while the app is running
+        shell: pwsh
+        run: |
+          . .github/scripts/installer-smoke-helpers.ps1
+          # The updater's exact command line. The running app is asked to quit over the quit
+          # event (timed: the taskkill fallback would take longer), the folder stays, and
+          # /RESTART brings the app back.
+          $before = (Get-ItemProperty $env:UNINST_KEY_USER).InstallLocation
+          Start-Process -FilePath $env:SETUP -ArgumentList '/S','/CurrentUser','/NORUNTIME','/RESTART'
+          Wait-AppGone 8
+          Wait-SetupDone $env:SETUP
+          $entry = Get-ItemProperty $env:UNINST_KEY_USER
+          if ($entry.InstallLocation -ne $before) { throw "the upgrade relocated the install from $before to $($entry.InstallLocation)" }
+          if (Test-Path $env:UNINST_KEY_MACHINE) { throw "upgrading a per-user install registered a per-machine entry too" }
+          Wait-AppStarted
+
+      - name: Per-user - uninstall silently and leave nothing behind
+        shell: pwsh
+        run: |
+          . .github/scripts/installer-smoke-helpers.ps1
+          Set-AppTraces $env:INSTALL_DIR
+          $uninstaller = (Get-ItemProperty $env:UNINST_KEY_USER).UninstallString.Trim('"')
+          Start-Process -FilePath $uninstaller -ArgumentList '/S'
+          # The app was running when the uninstall started: asked to quit, not killed.
+          Wait-AppGone 8
+          Wait-Removed $env:UNINST_KEY_USER $env:INSTALL_DIR
+          $shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\DisplayRotate.lnk'
+          if (Test-Path $shortcut) { throw "the uninstall left the Start Menu shortcut behind" }
+          Assert-NoAppTraces
+
+      - name: Per-machine - install silently and start the app
+        shell: pwsh
+        run: |
+          . .github/scripts/installer-smoke-helpers.ps1
+          # The runner's shell holds an administrator token, so /AllUsers needs no UAC here.
+          $p = Start-Process -FilePath $env:SETUP -ArgumentList '/S','/AllUsers','/RESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "the installer exited with $($p.ExitCode)" }
+          if (-not (Test-Path $env:UNINST_KEY_MACHINE)) { throw "nothing registered at $env:UNINST_KEY_MACHINE" }
+          if (Test-Path $env:UNINST_KEY_USER) { throw "a per-machine install registered a per-user entry too" }
+          $entry = Get-ItemProperty $env:UNINST_KEY_MACHINE
+          $installDir = Join-Path $env:ProgramFiles 'DisplayRotate'
+          if ($entry.InstallLocation -ne $installDir) { throw "installed to $($entry.InstallLocation), expected $installDir" }
+          if ($entry.BuildVariant -ne 'full') { throw "BuildVariant is '$($entry.BuildVariant)', expected full" }
+          $shortcut = Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs\DisplayRotate.lnk'
+          if (-not (Test-Path $shortcut)) { throw "no common Start Menu shortcut at $shortcut" }
+          Add-Content -Path $env:GITHUB_ENV -Value "MACHINE_DIR=$installDir"
+          Add-Content -Path $env:GITHUB_ENV -Value "MACHINE_SHORTCUT=$shortcut"
+          Wait-AppStarted
+
+      - name: Per-machine - uninstall silently and leave nothing behind
+        shell: pwsh
+        run: |
+          . .github/scripts/installer-smoke-helpers.ps1
+          # The uninstall string carries no /AllUsers: un.onInit has to work out on its own that
+          # this is a machine-wide install, or the common shortcut and the HKLM entry stay
+          # behind while it reports success.
+          Set-AppTraces $env:MACHINE_DIR
+          $uninstaller = (Get-ItemProperty $env:UNINST_KEY_MACHINE).UninstallString.Trim('"')
+          Start-Process -FilePath $uninstaller -ArgumentList '/S'
+          Wait-AppGone 8
+          Wait-Removed $env:UNINST_KEY_MACHINE $env:MACHINE_DIR
+          if (Test-Path $env:MACHINE_SHORTCUT) { throw "the uninstall left the common Start Menu shortcut behind" }
+          Assert-NoAppTraces
+
+      - name: Per-machine MINIMAL - install silently and start the app
+        shell: pwsh
+        run: |
+          . .github/scripts/installer-smoke-helpers.ps1
+          # The only step that unpacks and boots the framework-dependent exe. /NORUNTIME so no
+          # winget download lands on the runner: setup-dotnet's SDK carries the Desktop Runtime,
+          # which also proves the MINIMAL_ONLY guard refuses only when the runtime is MISSING.
+          $p = Start-Process -FilePath $env:SETUP_MIN -ArgumentList '/S','/AllUsers','/NORUNTIME','/RESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "the minimal installer exited with $($p.ExitCode) (3 = it did not find the .NET runtime)" }
+          $entry = Get-ItemProperty $env:UNINST_KEY_MACHINE
+          if ($entry.BuildVariant -ne 'min') { throw "BuildVariant is '$($entry.BuildVariant)', expected min" }
+          Add-Content -Path $env:GITHUB_ENV -Value "MIN_DIR=$($entry.InstallLocation)"
+          Wait-AppStarted
+
+      - name: Per-machine MINIMAL - uninstall silently
+        shell: pwsh
+        run: |
+          . .github/scripts/installer-smoke-helpers.ps1
+          $uninstaller = (Get-ItemProperty $env:UNINST_KEY_MACHINE).UninstallString.Trim('"')
+          Start-Process -FilePath $uninstaller -ArgumentList '/S'
+          Wait-AppGone 8
+          Wait-Removed $env:UNINST_KEY_MACHINE $env:MIN_DIR
+
+      # Both hives use the same Add/Remove key name. Uninstalling one copy must leave the other's
+      # entry alone - otherwise its files stay behind with no uninstaller, and the app takes itself
+      # for a portable copy that can't update.
+      - name: Side by side - uninstalling one install leaves the other intact
+        shell: pwsh
+        run: |
+          . .github/scripts/installer-smoke-helpers.ps1
+          foreach ($mode in '/CurrentUser', '/AllUsers') {
+            $p = Start-Process -FilePath $env:SETUP -ArgumentList '/S', $mode -Wait -PassThru
+            if ($p.ExitCode -ne 0) { throw "the $mode install exited with $($p.ExitCode)" }
+          }
+          $user = (Get-ItemProperty $env:UNINST_KEY_USER).InstallLocation
+          $machine = (Get-ItemProperty $env:UNINST_KEY_MACHINE).InstallLocation
+          "per-user copy in $user, machine-wide copy in $machine"
+          Start-Process -FilePath (Join-Path $machine 'uninstall.exe') -ArgumentList '/S'
+          Wait-Removed $env:UNINST_KEY_MACHINE $machine
+          if (-not (Test-Path $env:UNINST_KEY_USER)) { throw "uninstalling the machine-wide copy took the per-user copy's entry with it" }
+          if (-not (Test-Path (Join-Path $user 'DisplayRotate.exe'))) { throw "uninstalling the machine-wide copy touched the per-user copy's files" }
+          Start-Process -FilePath (Join-Path $user 'uninstall.exe') -ArgumentList '/S'
+          Wait-Removed $env:UNINST_KEY_USER $user
+          "both gone, each by its own uninstaller"
+
+  version:
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [build, linux, installer, installer-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      new_tag: ${{ steps.bump.outputs.new_tag }}
+      new_version: ${{ steps.bump.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      # Conventional Commits since the last tag: feat -> minor, fix -> patch, ! or a
+      # BREAKING CHANGE footer -> major; anything else (ci, docs, chore, refactor ...) releases
+      # nothing. A manual run can force a bump.
+      - name: Compute next version from Conventional Commits
+        id: bump
+        shell: bash
+        env:
+          FORCED_BUMP: ${{ github.event.inputs.bump }}
+        run: |
+          set -euo pipefail
+
+          latest=$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1 || true)
+          if [ -n "$latest" ]; then
+            range="${latest}..HEAD"; cur="${latest#v}"
+          else
+            range="HEAD"; cur="0.0.0"
+          fi
+
+          bump=none
+          if [ -n "${FORCED_BUMP:-}" ]; then
+            case "$FORCED_BUMP" in
+              patch|minor|major|none) bump="$FORCED_BUMP" ;;
+              *) echo "::error::Unsupported bump '$FORCED_BUMP'"; exit 1 ;;
+            esac
+          else
+            # Type prefixes are matched against SUBJECTS only: a body line quoting "fix: ..." -
+            # a revert, a changelog paste - must not cut a release. The BREAKING CHANGE footer
+            # lives in the body by definition, so that one grep scans full messages.
+            subjects=$(git log --format='%s' "$range")
+            bodies=$(git log --format='%B' "$range")
+
+            if grep -qE '^[a-z]+(\([^)]+\))?!:' <<<"$subjects" || grep -qE '^BREAKING[ -]CHANGE:' <<<"$bodies"; then
+              bump=major
+            elif grep -qE '^feat(\([^)]+\))?:' <<<"$subjects"; then bump=minor
+            elif grep -qE '^fix(\([^)]+\))?:'  <<<"$subjects"; then bump=patch
+            fi
+          fi
+
+          echo "Latest tag: ${latest:-<none>}   bump: $bump"
+
+          if [ "$bump" = none ]; then
+            echo "No release-worthy commits since ${latest:-start}."
+            echo "new_tag=" >> "$GITHUB_OUTPUT"
+            echo "new_version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          IFS=. read -r MA MI PA <<<"$cur"
+          if ! [[ "$MA" =~ ^[0-9]+$ && "$MI" =~ ^[0-9]+$ && "$PA" =~ ^[0-9]+$ ]]; then
+            echo "::error::Version '$cur' from tag '${latest:-<none>}' is not numeric; refusing."
+            exit 1
+          fi
+          case "$bump" in
+            major) MA=$((MA + 1)); MI=0; PA=0 ;;
+            minor) MI=$((MI + 1)); PA=0 ;;
+            patch) PA=$((PA + 1)) ;;
+          esac
+          echo "Next version: v${MA}.${MI}.${PA}"
+          echo "new_tag=v${MA}.${MI}.${PA}" >> "$GITHUB_OUTPUT"
+          echo "new_version=${MA}.${MI}.${PA}" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: [version, build, linux, installer, installer-smoke]
+    if: needs.version.outputs.new_tag != ''
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Publish full (self-contained, compressed)
+        shell: pwsh
+        run: |
+          dotnet publish src/DisplayRotate/DisplayRotate.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:Version=$env:VERSION -o publish-full
+          if ($LASTEXITCODE -ne 0) { throw "publish failed" }
+
+      - name: Publish minimal (needs the .NET 10 Desktop Runtime)
+        shell: pwsh
+        run: |
+          dotnet publish src/DisplayRotate/DisplayRotate.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:DebugType=none -p:Version=$env:VERSION -o publish-min
+          if ($LASTEXITCODE -ne 0) { throw "publish failed" }
+
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis --no-progress -y
+
+      - name: Build all three installers
+        shell: pwsh
+        run: |
+          $makensis = "${env:ProgramFiles(x86)}\NSIS\makensis.exe"
+          Copy-Item publish-full/DisplayRotate.exe packaging/DisplayRotate.exe -Force
+          Copy-Item publish-min/DisplayRotate.exe packaging/DisplayRotate-min.exe -Force
+          Push-Location packaging
+          foreach ($define in '', '/DFULL_ONLY', '/DMINIMAL_ONLY') {
+            $nsisArgs = @('/WX', '/V2', "/DVERSION=$env:VERSION")
+            if ($define) { $nsisArgs += $define }
+            $nsisArgs += 'displayrotate.nsi'
+            & $makensis @nsisArgs
+            if ($LASTEXITCODE -ne 0) { throw "makensis $define failed with $LASTEXITCODE" }
+          }
+          Pop-Location
+          Move-Item packaging/DisplayRotate-Setup-*.exe . -Force
+          foreach ($suffix in '', '-full', '-min') {
+            if (-not (Test-Path "DisplayRotate-Setup-$env:VERSION$suffix.exe")) { throw "DisplayRotate-Setup-$env:VERSION$suffix.exe was not built" }
+          }
+
+      - name: Zip the portable builds, checksum everything, write the release notes
+        shell: pwsh
+        run: |
+          $v = $env:VERSION
+          New-Item -ItemType Directory portable-full, portable-min | Out-Null
+          Copy-Item publish-full/DisplayRotate.exe portable-full/
+          Copy-Item publish-min/DisplayRotate.exe portable-min/
+          Copy-Item LICENSE portable-full/LICENSE.txt
+          Copy-Item LICENSE portable-min/LICENSE.txt
+          Compress-Archive -Path portable-full/* -DestinationPath "DisplayRotate-$v.zip" -Force
+          Compress-Archive -Path portable-min/* -DestinationPath "DisplayRotate-$v-min.zip" -Force
+
+          $assets = "DisplayRotate-Setup-$v.exe", "DisplayRotate-Setup-$v-full.exe", "DisplayRotate-Setup-$v-min.exe",
+                    "DisplayRotate-$v.zip", "DisplayRotate-$v-min.zip"
+          Get-FileHash $assets -Algorithm SHA256 |
+            ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), (Split-Path $_.Path -Leaf) } |
+            Set-Content SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+          function Size([string]$file) { "{0:N1} MB" -f ((Get-Item $file).Length / 1MB) }
+          $base = "https://github.com/${{ github.repository }}/releases/download/v$v"
+          @"
+          **DisplayRotate v$v** - rotate any display from the tray, a hotkey or the command line on Windows 10 & 11.
+
+          ### Install
+
+          | Download | Size | Needs |
+          |---|---|---|
+          | [DisplayRotate-Setup-$v.exe]($base/DisplayRotate-Setup-$v.exe) - **not sure? take this one**; asks which build | $(Size "DisplayRotate-Setup-$v.exe") | nothing |
+          | [DisplayRotate-Setup-$v-full.exe]($base/DisplayRotate-Setup-$v-full.exe) - runtime bundled | $(Size "DisplayRotate-Setup-$v-full.exe") | nothing |
+          | [DisplayRotate-Setup-$v-min.exe]($base/DisplayRotate-Setup-$v-min.exe) - tiny | $(Size "DisplayRotate-Setup-$v-min.exe") | .NET 10 Desktop Runtime (offered via winget) |
+
+          Installs for you only by default - no administrator rights needed. Choose "anyone who uses this computer" to install into Program Files.
+
+          ### Portable (no install)
+
+          | Download | Size | Needs |
+          |---|---|---|
+          | [DisplayRotate-$v.zip]($base/DisplayRotate-$v.zip) | $(Size "DisplayRotate-$v.zip") | nothing |
+          | [DisplayRotate-$v-min.zip]($base/DisplayRotate-$v-min.zip) | $(Size "DisplayRotate-$v-min.zip") | .NET 10 Desktop Runtime |
+
+          ### Already installed?
+
+          Right-click the tray icon -> **Check for updates**, or Settings -> Updates -> **Check now**. The download is verified against ``SHA256SUMS.txt`` before it runs.
+
+          The files are not code-signed yet: Windows SmartScreen may warn on first run (More info -> Run anyway), and a downloaded zip may need Properties -> **Unblock**. ``SHA256SUMS.txt`` holds the SHA-256 of every download.
+          "@ | Set-Content release-notes.md -Encoding utf8
+
+      - name: Publish the GitHub release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ needs.version.outputs.new_tag }}
+          # Pin the tag to the commit this job built. Without it the API tags master's HEAD at
+          # publish time, so a push landing mid-build would get a tag for code it never built.
+          target_commitish: ${{ github.sha }}
+          name: DisplayRotate ${{ needs.version.outputs.new_tag }}
+          body_path: release-notes.md
+          generate_release_notes: true
+          files: |
+            DisplayRotate-Setup-${{ needs.version.outputs.new_version }}.exe
+            DisplayRotate-Setup-${{ needs.version.outputs.new_version }}-full.exe
+            DisplayRotate-Setup-${{ needs.version.outputs.new_version }}-min.exe
+            DisplayRotate-${{ needs.version.outputs.new_version }}.zip
+            DisplayRotate-${{ needs.version.outputs.new_version }}-min.zip
+            SHA256SUMS.txt

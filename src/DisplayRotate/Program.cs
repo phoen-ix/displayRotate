@@ -1,3 +1,5 @@
+using DisplayRotate.Core;
+
 namespace DisplayRotate;
 
 static class Program
@@ -17,8 +19,15 @@ static class Program
             NativeMethods.ShowWindow(consoleWindow, NativeMethods.SW_HIDE);
         NativeMethods.FreeConsole();
 
+        // One tray instance at a time. The installer also watches this mutex: it is how it
+        // knows whether DisplayRotate is running, and when an instance it asked to quit is gone.
+        using var single = new Mutex(true, Names.SingleInstanceMutex, out var createdNew);
+        if (!createdNew)
+            return;
+
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApp());
+        GC.KeepAlive(single);
     }
 
     private static void RunCli(string[] args)
@@ -29,6 +38,10 @@ static class Program
         {
             case "list":
                 ListDisplays();
+                break;
+
+            case "--version":
+                Console.WriteLine(ProductInfo.Version);
                 break;
 
             case "rotate" when args.Length >= 2:
@@ -117,6 +130,7 @@ static class Program
     DisplayRotate list                  List connected displays
     DisplayRotate rotate <angle>        Rotate primary display (0, 90, 180, 270)
     DisplayRotate rotate <#> <angle>    Rotate display # to angle
+    DisplayRotate --version             Print the version
 
   Hotkeys (when running in tray):
     Ctrl+Alt+Up      Rotate primary to 0° (Landscape)

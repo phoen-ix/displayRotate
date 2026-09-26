@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- net10.0, not net10.0-windows: this references DisplayRotate.Core only, so it runs on
+         Linux as well as Windows. A project referencing the WinForms app would inherit
+         Microsoft.WindowsDesktop.App and only run on Windows. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>DisplayRotate.Tests</RootNamespace>
+    <!-- xunit.v3 test projects are executables on Microsoft.Testing.Platform; the opt-in
+         `dotnet test` needs for that is the "test" block in global.json. -->
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.0" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/DisplayRotate.Core/DisplayRotate.Core.csproj" />
+  </ItemGroup>
+
+</Project>

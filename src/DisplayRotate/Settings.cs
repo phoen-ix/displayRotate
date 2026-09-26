@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DisplayRotate.Core;
 using Microsoft.Win32;
 using static DisplayRotate.NativeMethods;
 
@@ -55,6 +56,18 @@ public class AppSettings
     public Dictionary<string, int> PreferredOrientations { get; set; } = new();
     public List<HotkeyBinding> Hotkeys { get; set; } = new();
 
+    /// <summary>"manual" (only when asked - the default) or "daily". Anything else reads as manual.</summary>
+    public string UpdateCheck { get; set; } = UpdateCheckManual;
+
+    /// <summary>When the last update check ran, answered or not.</summary>
+    public DateTimeOffset? LastUpdateCheckUtc { get; set; }
+
+    public const string UpdateCheckManual = "manual";
+    public const string UpdateCheckDaily = "daily";
+
+    [JsonIgnore]
+    public bool DailyUpdateCheck => string.Equals(UpdateCheck, UpdateCheckDaily, StringComparison.OrdinalIgnoreCase);
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -89,7 +102,29 @@ public class AppSettings
         var dir = Path.GetDirectoryName(path)!;
         Directory.CreateDirectory(dir);
         var json = JsonSerializer.Serialize(this, JsonOptions);
-        File.WriteAllText(path, json);
+        // Written beside and moved into place: the update timer saves too, and a crash
+        // mid-write must leave the old file rather than half of a new one.
+        var temporary = path + ".tmp";
+        File.WriteAllText(temporary, json);
+        File.Move(temporary, path, overwrite: true);
+    }
+
+    /// <summary>
+    /// Records that an update check ran. Written to the file as it is on disk, not from this
+    /// instance, so edits still open in the Settings dialog are not saved along with it.
+    /// </summary>
+    public void StampUpdateCheck(DateTimeOffset now)
+    {
+        LastUpdateCheckUtc = now;
+        try
+        {
+            var onDisk = Load();
+            onDisk.LastUpdateCheckUtc = now;
+            onDisk.Save();
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     public static AppSettings CreateDefault()
@@ -108,14 +143,13 @@ public class AppSettings
 
     public void ApplyStartWithWindows()
     {
-        using var key = Registry.CurrentUser.OpenSubKey(
-            @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", writable: true);
+        using var key = Registry.CurrentUser.OpenSubKey(Names.RunKey, writable: true);
         if (key == null) return;
 
         if (StartWithWindows)
-            key.SetValue("DisplayRotate", $"\"{Application.ExecutablePath}\"");
+            key.SetValue(Names.RunValue, $"\"{Application.ExecutablePath}\"");
         else
-            key.DeleteValue("DisplayRotate", throwOnMissingValue: false);
+            key.DeleteValue(Names.RunValue, throwOnMissingValue: false);
     }
 
     public void RestoreOrientations()

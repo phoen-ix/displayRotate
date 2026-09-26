@@ -1,3 +1,5 @@
+using DisplayRotate.Core;
+using DisplayRotate.Core.Updates;
 using static DisplayRotate.NativeMethods;
 
 namespace DisplayRotate;
@@ -14,12 +16,23 @@ internal sealed class SettingsForm : Form
     private readonly Panel _hotkeysPanel;
     private readonly List<(string DeviceName, ComboBox Combo)> _orientationCombos = new();
 
-    public SettingsForm(AppSettings settings)
+    private readonly Updater _updater;
+    private readonly InstallRecord _install = Updater.DetectInstall();
+    private readonly RadioButton _rbUpdateManual;
+    private readonly RadioButton _rbUpdateDaily;
+    private readonly Button _btnCheckNow;
+    private readonly Button _btnUpdate;
+    private readonly Label _lblUpdateStatus;
+
+    public SettingsForm(AppSettings settings, Updater updater)
     {
         _settings = settings;
+        _updater = updater;
 
-        Text = "DisplayRotate Settings";
-        Size = new Size(580, 560);
+        Text = ProductInfo.IsDevBuild
+            ? "DisplayRotate Settings — development build"
+            : $"DisplayRotate Settings — v{ProductInfo.Version}";
+        Size = new Size(580, 660);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -84,6 +97,38 @@ internal sealed class SettingsForm : Form
         mainPanel.Controls.Add(btnReset);
         y += 36;
 
+        // --- Updates ---
+        var lblUpdates = new Label { Text = "Updates", Font = new Font("Segoe UI", 10, FontStyle.Bold), Location = new Point(12, y), AutoSize = true };
+        mainPanel.Controls.Add(lblUpdates);
+        y += 28;
+
+        // Their own panel, so the two radios form a group of their own.
+        var updateModePanel = new Panel { Location = new Point(12, y), Size = new Size(530, 26) };
+        _rbUpdateManual = new RadioButton { Text = "Only when I ask", Location = new Point(4, 2), AutoSize = true, Checked = !settings.DailyUpdateCheck };
+        _rbUpdateDaily = new RadioButton { Text = "Check once a day", Location = new Point(160, 2), AutoSize = true, Checked = settings.DailyUpdateCheck };
+        updateModePanel.Controls.Add(_rbUpdateManual);
+        updateModePanel.Controls.Add(_rbUpdateDaily);
+        mainPanel.Controls.Add(updateModePanel);
+        y += 30;
+
+        _btnCheckNow = new Button { Text = "Check now", Location = new Point(16, y), Width = 100, FlatStyle = FlatStyle.System };
+        _btnCheckNow.Click += async (_, _) => await OnCheckNowAsync();
+        mainPanel.Controls.Add(_btnCheckNow);
+
+        _btnUpdate = new Button { Location = new Point(122, y), Width = 170, FlatStyle = FlatStyle.System, Visible = false };
+        _btnUpdate.Click += async (_, _) => await OnUpdateAsync();
+        mainPanel.Controls.Add(_btnUpdate);
+        y += 32;
+
+        _lblUpdateStatus = new Label { Location = new Point(16, y), AutoSize = true, MaximumSize = new Size(520, 0) };
+        mainPanel.Controls.Add(_lblUpdateStatus);
+        y += 44;
+
+        _lblUpdateStatus.Text = InitialUpdateStatus();
+        RefreshUpdateControls();
+        _updater.Changed += RefreshUpdateControls;
+        FormClosed += (_, _) => _updater.Changed -= RefreshUpdateControls;
+
         // --- Save / Cancel ---
         var buttonPanel = new Panel { Dock = DockStyle.Bottom, Height = 45 };
         Controls.Add(buttonPanel);
@@ -97,6 +142,82 @@ internal sealed class SettingsForm : Form
 
         AcceptButton = btnSave;
         CancelButton = btnCancel;
+    }
+
+    private string InitialUpdateStatus()
+    {
+        if (_updater.Engine.DisabledByPolicy)
+            return "Update checks are disabled by policy on this computer.";
+        if (_updater.Installing)
+            return "Installing… DisplayRotate closes while the files are replaced, and starts again at the new version.";
+        if (_updater.Last is { } last)
+            return Updater.Describe(last);
+        return _settings.LastUpdateCheckUtc is { } stamp
+            ? $"Last checked {stamp.ToLocalTime():yyyy-MM-dd HH:mm}."
+            : "Never checked.";
+    }
+
+    private void RefreshUpdateControls()
+    {
+        if (IsDisposed)
+            return;
+
+        var idle = !_updater.Busy && !_updater.Installing;
+        _btnCheckNow.Enabled = idle && !_updater.Engine.DisabledByPolicy;
+
+        if (_updater.Available is { } latest && !_updater.Installing)
+        {
+            var portable = _install.Scope == InstallScope.Portable;
+            _btnUpdate.Text = portable ? "Open download page" : $"Update to {latest.ToString(3)}";
+            _btnUpdate.Enabled = idle;
+            _btnUpdate.Visible = true;
+
+            // The shield says "this asks for administrator rights" before anyone presses it.
+            if (_install.Scope == InstallScope.PerMachine && !Environment.IsPrivilegedProcess)
+                SendMessage(_btnUpdate.Handle, BCM_SETSHIELD, IntPtr.Zero, 1);
+        }
+        else
+        {
+            _btnUpdate.Visible = false;
+        }
+    }
+
+    private async Task OnCheckNowAsync()
+    {
+        _lblUpdateStatus.Text = "Checking…";
+        var result = await _updater.CheckAsync();
+        if (result is not null && !IsDisposed)
+            _lblUpdateStatus.Text = Updater.Describe(result);
+    }
+
+    private async Task OnUpdateAsync()
+    {
+        if (_install.Scope == InstallScope.Portable)
+        {
+            Updater.OpenReleasePage();
+            return;
+        }
+
+        _lblUpdateStatus.Text = "Downloading…";
+
+        // Progress arrives on the download's thread, once per 64 KB: post only when the text changes.
+        var shown = "";
+        var result = await _updater.ApplyAsync((done, total) =>
+        {
+            var text = Updater.Progress(done, total);
+            if (text != Interlocked.Exchange(ref shown, text) && IsHandleCreated)
+                BeginInvoke(() => { if (_updater.Busy) _lblUpdateStatus.Text = text; });
+        });
+
+        if (result is null || IsDisposed)
+            return;
+
+        _lblUpdateStatus.Text = result.Message;
+
+        // No dialog while installing: the installer is about to close this window along with
+        // the app, and gives it only seconds to go.
+        if (result.Outcome is ApplyOutcome.Failed or ApplyOutcome.DisabledByPolicy)
+            MessageBox.Show(this, result.Message, "DisplayRotate update", MessageBoxButtons.OK, MessageBoxIcon.Warning);
     }
 
     private void BuildOrientationsPanel()
@@ -180,6 +301,7 @@ internal sealed class SettingsForm : Form
         _settings.ShowIdentifyButtons = _chkShowIdentify.Checked;
         _settings.AutoRestoreOrientations = _chkAutoRestore.Checked;
         _settings.OverlayDurationMs = (int)_nudOverlayDuration.Value * 1000;
+        _settings.UpdateCheck = _rbUpdateDaily.Checked ? AppSettings.UpdateCheckDaily : AppSettings.UpdateCheckManual;
 
         _settings.PreferredOrientations.Clear();
         foreach (var (deviceName, combo) in _orientationCombos)
