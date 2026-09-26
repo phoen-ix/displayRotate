@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the run it supersedes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Linux runners on purpose (a Windows runner bills 2x on this private repo):
+# EnableWindowsTargeting compiles the WinForms app, but CI cannot run it and
+# there are no tests - the first run of a build is still on Windows.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore RotateIt/RotateIt.csproj -p:EnableWindowsTargeting=true
+
+      - name: Build
+        run: dotnet build RotateIt/RotateIt.csproj -c Release --no-restore -p:EnableWindowsTargeting=true
+
+      # `dotnet list package` restores again, so it needs EnableWindowsTargeting
+      # too (MSBuild reads it from the environment). Require the positive message:
+      # a failed restore must not read as "no vulnerabilities".
+      - name: Audit NuGet packages (fail on any known vulnerability)
+        env:
+          EnableWindowsTargeting: "true"
+        run: |
+          out=$(dotnet list RotateIt/RotateIt.csproj package --vulnerable --include-transitive)
+          echo "$out"
+          grep -q "has no vulnerable packages" <<< "$out"
+
+  installer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install NSIS
+        run: sudo apt-get update -q && sudo apt-get install -y -q nsis
+
+      # build.bat copies the published exe, icon and licence next to the script;
+      # an empty stub exe is enough to prove the script compiles (warnings are errors).
+      - name: Compile the installer script
+        working-directory: packaging
+        run: |
+          : > RotateIt.exe
+          cp ../RotateIt/app.ico rotateit.ico
+          cp ../LICENSE .
+          makensis -WX -V2 -DVERSION=0.0.0 rotateit.nsi
