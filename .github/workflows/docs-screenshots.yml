@@ -1,0 +1,44 @@
+name: Docs screenshots
+
+# Regenerates docs/screenshots/*.png on a Windows runner: the docs tour
+# (tests/DisplayRotate.DocsTests, run by scripts/docs-screenshots.sh) builds the tray menu,
+# the Settings dialog and the Identify overlay and saves each as a PNG. They come back as the
+# `docs-screenshots` artifact - this workflow never commits. Unzip it into docs/screenshots/,
+# optimise them (README "Screenshots"), look at the diff and commit it yourself.
+#
+# Manual only: screenshots are regenerated on purpose, when a window worth showing has
+# changed. The same tour runs as a render check in ci.yml's build job.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-screenshots
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # The tags, for the version the title bars show.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Run the docs tour
+        shell: bash
+        run: bash scripts/docs-screenshots.sh "$(cygpath -u "$RUNNER_TEMP")/docs-screenshots"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: docs-screenshots
+          path: ${{ runner.temp }}/docs-screenshots/
+          if-no-files-found: error
+          retention-days: 14

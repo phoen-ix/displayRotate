@@ -15,4 +15,9 @@
     <ProjectReference Include="../DisplayRotate.Core/DisplayRotate.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The docs screenshot tour builds the Settings dialog, the tray menu and the overlay itself. -->
+    <InternalsVisibleTo Include="DisplayRotate.DocsTests" />
+  </ItemGroup>
+
 </Project>
