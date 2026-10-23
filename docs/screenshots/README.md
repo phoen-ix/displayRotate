@@ -34,7 +34,8 @@ instead.
 
 ## Identify overlay
 
-**Identify** puts each display's number on that screen, over a dimmed desktop, for the time set
-in Settings. A click or a key closes it early.
+**Identify** (one display) or **Identify Displays** (all of them) covers the screen with a
+75%-opaque black layer showing the display's number, for the time set in Settings. A click or a
+key closes it early. The picture shows the overlay without the desktop behind it.
 
 <img src="identify-overlay.png" alt="The Identify overlay: a large white 1 on black" width="480">

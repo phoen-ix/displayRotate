@@ -1,6 +1,6 @@
 # DisplayRotate
 
-<img src="docs/screenshots/tray-menu.png" alt="The DisplayRotate tray menu: display 1 with its resolution and four orientations, Identify, Settings..., Check for updates and Exit">
+<img src="docs/screenshots/tray-menu.png" alt="The DisplayRotate tray menu: display 1 with its resolution and four orientations, Identify, Identify Displays, Settings..., Check for updates and Exit">
 
 Rotate any display on Windows 10 and 11 from the system tray, a hotkey, or the command line.
 Landscape, portrait, flipped either way. Pick it per monitor from the tray menu, bind your own
@@ -32,13 +32,13 @@ and suggests the one that needs nothing.
 
 | Installer | Size | Needs anything installed? |
 | --- | --- | --- |
-| **`DisplayRotate-Setup-<version>.exe`** | ~43 MB | No. It asks which of the two builds below to install. |
-| **`DisplayRotate-Setup-<version>-full.exe`** | ~43 MB | **No.** All-in-one, with the runtime inside. |
+| **`DisplayRotate-Setup-<version>.exe`** | ~41 MB | No. It asks which of the two builds below to install. |
+| **`DisplayRotate-Setup-<version>-full.exe`** | ~41 MB | **No.** All-in-one, with the runtime inside. |
 | **`DisplayRotate-Setup-<version>-min.exe`** | ~0.2 MB | Yes: the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64), which the installer offers to fetch through `winget`. |
 
 | Portable | Size | Needs anything installed? |
 | --- | --- | --- |
-| **`DisplayRotate-<version>.zip`** | ~44 MB | **No.** The runtime is bundled. |
+| **`DisplayRotate-<version>.zip`** | ~42 MB | **No.** The runtime is bundled. |
 | **`DisplayRotate-<version>-min.zip`** | ~0.1 MB | Yes: the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64). |
 
 It is the same app in every row.
