@@ -32,11 +32,11 @@ and suggests the one that needs nothing.
 | --- | --- | --- |
 | **`DisplayRotate-Setup-<version>.exe`** | ~43 MB | No. It asks which of the two builds below to install. |
 | **`DisplayRotate-Setup-<version>-full.exe`** | ~43 MB | **No.** All-in-one, with the runtime inside. |
-| **`DisplayRotate-Setup-<version>-min.exe`** | ~0.3 MB | Yes: the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64), which the installer offers to fetch through `winget`. |
+| **`DisplayRotate-Setup-<version>-min.exe`** | ~0.2 MB | Yes: the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64), which the installer offers to fetch through `winget`. |
 
 | Portable | Size | Needs anything installed? |
 | --- | --- | --- |
-| **`DisplayRotate-<version>.zip`** | ~42 MB | **No.** The runtime is bundled. |
+| **`DisplayRotate-<version>.zip`** | ~44 MB | **No.** The runtime is bundled. |
 | **`DisplayRotate-<version>-min.zip`** | ~0.1 MB | Yes: the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64). |
 
 It is the same app in every row.
@@ -65,8 +65,9 @@ A silent `/AllUsers` install from a shell that isn't elevated exits with code 2 
 
 - **Click** the tray icon (left or right) for the menu. It shows:
   - every connected display, with its resolution and its four orientations (the current one is ticked)
-  - **Identify**: a big number on each screen, so you know which is which
-  - **Settings…**
+  - **Identify** under each display, and **Identify Displays** for all of them: a big number
+    on each screen, so you know which is which
+  - **Settings...**
   - **Check for updates**
   - **Exit**
 - **Hotkeys** work anywhere while DisplayRotate runs. The defaults rotate the primary display:
@@ -82,7 +83,7 @@ A silent `/AllUsers` install from a shell that isn't elevated exits with code 2 
   another program already owns a combination, a balloon says which ones could not be registered.
 - **Settings** also has:
   - start with Windows
-  - Identify buttons in the menu
+  - the per-display **Identify** items in the menu
   - how long the Identify overlay stays up
   - **auto-restore**: choose an orientation per display, and DisplayRotate puts it back every
     time it starts
