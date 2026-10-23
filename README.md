@@ -1,5 +1,7 @@
 # DisplayRotate
 
+<img src="docs/screenshots/tray-menu.png" alt="The DisplayRotate tray menu: display 1 with its resolution and four orientations, Identify, Settings..., Check for updates and Exit">
+
 Rotate any display on Windows 10 and 11 from the system tray, a hotkey, or the command line.
 Landscape, portrait, flipped either way. Pick it per monitor from the tray menu, bind your own
 hotkeys to any display and angle, and have your preferred orientations come back at startup.
@@ -87,6 +89,8 @@ A silent `/AllUsers` install from a shell that isn't elevated exits with code 2 
   - how long the Identify overlay stays up
   - **auto-restore**: choose an orientation per display, and DisplayRotate puts it back every
     time it starts
+
+  <img src="docs/screenshots/settings.png" alt="The Settings dialog: General options, four Ctrl+Alt+arrow hotkeys for the primary display, and the update choice">
 - **Only one copy runs at a time.** Starting it again while it is already in the tray does nothing.
 
 ### Command line
@@ -111,6 +115,9 @@ installer over the old one. That installer keeps your scope, your folder and you
   - It is checked against that release's `SHA256SUMS.txt` before it runs.
   - DisplayRotate then closes, updates, and comes back.
   - A per-machine install asks for administrator rights first.
+
+<img src="docs/screenshots/tray-menu-update.png" alt="The tray menu with Install DisplayRotate 0.2.0… in bold at the top" align="top">
+<img src="docs/screenshots/settings-update.png" alt="The Settings dialog after a check found a newer release: an Update to 0.2.0 button and the status line" align="top">
 
 The details are in [docs/updating.md](docs/updating.md): what is verified, what is not, the policy switch, and
 what happens when something goes wrong.
@@ -159,6 +166,21 @@ explains the installer.
   `feat:` or `fix:` tags and publishes the next version once every check has passed. That
   includes a real install, upgrade and uninstall on a Windows runner.
 - Other types (`docs:`, `ci:`, `chore:`, `refactor:`) release nothing.
+
+## Screenshots
+
+The pictures here and in the [gallery](docs/screenshots/README.md) come from a test,
+[`tests/DisplayRotate.DocsTests`](tests/DisplayRotate.DocsTests/DocsTour.cs). It builds the tray
+menu, the Settings dialog and the Identify overlay the way the app does, checks what each one
+shows, and saves it as a PNG. It needs Windows, so it is not part of `DisplayRotate.slnx`:
+
+- **On GitHub:** run the **Docs screenshots** workflow (Actions tab) and download its
+  `docs-screenshots` artifact. It never commits.
+- **On Windows** (Git Bash): `bash scripts/docs-screenshots.sh [outdir]` writes to
+  `docs/screenshots/` by default.
+
+Shrink them before committing (`oxipng -o 4 --strip safe docs/screenshots/*.png`). CI's
+Windows build job runs the same test as a render check.
 
 ## License
 

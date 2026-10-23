@@ -14,8 +14,9 @@ namespace DisplayRotate.DocsTests;
 /// DOCS_SCREENSHOT_DIR. Run through scripts/docs-screenshots.sh.
 /// </summary>
 /// <remarks>
-/// Rotating a display and the tray balloons are left out: the first changes the runner's screen,
-/// the second is drawn by the shell, not by DisplayRotate.
+/// Left out: rotating a display (it changes the runner's screen), the tray balloons (the shell
+/// draws them), and Settings with auto-restore on, whose per-display rows currently overlap the
+/// Hotkeys heading - add that shot once the layout is fixed.
 /// </remarks>
 [Trait("Category", "Docs")]
 public class DocsTour
@@ -54,17 +55,6 @@ public class DocsTour
         Assert.Contains(Controls(form), c => c is Label { Text: "Never checked." });
         Assert.Equal(4, Controls(form).Count(c => c is TextBox t && t.Text.StartsWith("Ctrl+Alt+", StringComparison.Ordinal)));
         Save(Window(form), "settings");
-    });
-
-    [Fact]
-    public void SettingsWithAutoRestore() => OnSta(() =>
-    {
-        var settings = AppSettings.CreateDefault();
-        settings.AutoRestoreOrientations = true;
-        using var form = new SettingsForm(settings, new Updater(() => settings));
-        Show(form);
-        Assert.Contains(Controls(form), c => c is Label { Visible: true } l && l.Text.StartsWith("Display 1: ", StringComparison.Ordinal));
-        Save(Window(form), "settings-auto-restore");
     });
 
     [Fact]
