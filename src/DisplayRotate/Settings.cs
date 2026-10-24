@@ -16,6 +16,8 @@ public class HotkeyBinding
     public uint VirtualKey { get; set; }
     public bool IsEnabled { get; set; } = true;
 
+    public HotkeyBinding Clone() => (HotkeyBinding)MemberwiseClone();
+
     public string FormatHotkey()
     {
         if (VirtualKey == 0) return "(None)";

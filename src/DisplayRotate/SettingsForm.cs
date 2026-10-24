@@ -7,7 +7,11 @@ namespace DisplayRotate;
 internal sealed class SettingsForm : Form
 {
     private readonly AppSettings _settings;
+    // A copy: Add, Remove, Reset and new key combinations reach the settings only on Save.
+    private readonly List<HotkeyBinding> _hotkeys;
     private readonly List<HotkeyRow> _hotkeyRows = new();
+    // The row last focused. Clicking Remove moves the focus to the button before its Click runs.
+    private HotkeyRow? _selectedRow;
     private readonly CheckBox _chkStartWithWindows;
     private readonly CheckBox _chkShowIdentify;
     private readonly CheckBox _chkAutoRestore;
@@ -27,6 +31,7 @@ internal sealed class SettingsForm : Form
     public SettingsForm(AppSettings settings, Updater updater)
     {
         _settings = settings;
+        _hotkeys = settings.Hotkeys.Select(h => h.Clone()).ToList();
         _updater = updater;
 
         Text = ProductInfo.IsDevBuild
@@ -268,45 +273,45 @@ internal sealed class SettingsForm : Form
     {
         _hotkeysPanel.Controls.Clear();
         _hotkeyRows.Clear();
+        foreach (var binding in _hotkeys)
+            AddHotkeyRow(binding);
+    }
 
-        int ry = 2;
-        foreach (var binding in _settings.Hotkeys)
-        {
-            var row = new HotkeyRow(binding, ry, _hotkeysPanel);
-            _hotkeyRows.Add(row);
-            ry += 30;
-        }
+    private void AddHotkeyRow(HotkeyBinding binding)
+    {
+        var row = new HotkeyRow(binding, _hotkeyRows.Count * 30 + 2, _hotkeysPanel);
+        row.Entered += () => _selectedRow = row;
+        _hotkeyRows.Add(row);
     }
 
     private void OnAddHotkey(object? sender, EventArgs e)
     {
         var binding = new HotkeyBinding
         {
-            ActionId = $"custom_{_settings.Hotkeys.Count}",
+            ActionId = $"custom_{_hotkeys.Count}",
             DisplayName = "New Hotkey",
             TargetDisplayIndex = 0,
             TargetOrientation = DMDO_DEFAULT,
             IsEnabled = true
         };
-        _settings.Hotkeys.Add(binding);
-        var row = new HotkeyRow(binding, _hotkeyRows.Count * 30 + 2, _hotkeysPanel);
-        _hotkeyRows.Add(row);
+        _hotkeys.Add(binding);
+        AddHotkeyRow(binding);
     }
 
     private void OnRemoveHotkey(object? sender, EventArgs e)
     {
-        var selected = _hotkeyRows.FindIndex(r => r.IsSelected);
+        var selected = _selectedRow is null ? -1 : _hotkeyRows.IndexOf(_selectedRow);
         if (selected < 0) return;
 
-        _settings.Hotkeys.RemoveAt(selected);
+        _hotkeys.RemoveAt(selected);
         BuildHotkeyRows();
     }
 
     private void OnResetDefaults(object? sender, EventArgs e)
     {
         var defaults = AppSettings.CreateDefault();
-        _settings.Hotkeys.Clear();
-        _settings.Hotkeys.AddRange(defaults.Hotkeys);
+        _hotkeys.Clear();
+        _hotkeys.AddRange(defaults.Hotkeys);
         BuildHotkeyRows();
     }
 
@@ -324,6 +329,7 @@ internal sealed class SettingsForm : Form
 
         foreach (var row in _hotkeyRows)
             row.ApplyToBinding();
+        _settings.Hotkeys = _hotkeys;
 
         _settings.Save();
         _settings.ApplyStartWithWindows();
@@ -344,7 +350,7 @@ internal sealed class SettingsForm : Form
         private uint _modifiers;
         private uint _virtualKey;
 
-        public bool IsSelected => _txtHotkey.Focused || _chkEnabled.Focused || _cmbDisplay.Focused || _cmbOrientation.Focused;
+        public event Action? Entered;
 
         public HotkeyRow(HotkeyBinding binding, int y, Panel parent)
         {
@@ -381,6 +387,9 @@ internal sealed class SettingsForm : Form
             _txtHotkey.GotFocus += (_, _) => _txtHotkey.BackColor = Color.LightYellow;
             _txtHotkey.LostFocus += (_, _) => _txtHotkey.BackColor = SystemColors.Window;
             parent.Controls.Add(_txtHotkey);
+
+            foreach (var control in new Control[] { _chkEnabled, _cmbDisplay, _cmbOrientation, _txtHotkey })
+                control.Enter += (_, _) => Entered?.Invoke();
         }
 
         private void OnHotkeyKeyDown(object? sender, KeyEventArgs e)
