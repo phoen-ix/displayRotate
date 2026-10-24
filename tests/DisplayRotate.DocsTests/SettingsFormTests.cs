@@ -54,6 +54,20 @@ public class SettingsFormTests
         Assert.Equal(new[] { "Ctrl+Alt+Up", "Ctrl+Alt+Right", "Ctrl+Alt+Left" }, HotkeyBoxes(form).Select(t => t.Text));
     });
 
+    [Fact]
+    public void RemoveKeepsTheOtherRowsEdits() => OnSta(() =>
+    {
+        using var form = new SettingsForm(AppSettings.CreateDefault(), new Updater(AppSettings.CreateDefault));
+        Show(form);
+        InHotkeyRows<CheckBox>(form)[0].Checked = false;
+        InHotkeyRows<ComboBox>(form)[1].SelectedIndex = 1; // row 0: display, then orientation
+
+        RemoveRow(form, 2);
+
+        Assert.False(InHotkeyRows<CheckBox>(form)[0].Checked);
+        Assert.Equal(1, InHotkeyRows<ComboBox>(form)[1].SelectedIndex);
+    });
+
     internal static void AssertRowsAboveHotkeys(SettingsForm form)
     {
         var rows = Find<Button>(form, "Identify").Parent!;
@@ -66,8 +80,10 @@ public class SettingsFormTests
         Controls(form).OfType<T>().First(c => c.Text == text);
 
     // Not every TextBox: the NumericUpDown has one inside.
-    private static List<TextBox> HotkeyBoxes(Control form) =>
-        Controls(form).OfType<TextBox>().Where(t => t.Parent is Panel { BorderStyle: BorderStyle.FixedSingle }).ToList();
+    private static List<TextBox> HotkeyBoxes(Control form) => InHotkeyRows<TextBox>(form);
+
+    private static List<T> InHotkeyRows<T>(Control form) where T : Control =>
+        Controls(form).OfType<T>().Where(t => t.Parent is Panel { BorderStyle: BorderStyle.FixedSingle }).ToList();
 
     /// <summary>What a mouse click on Remove does: the button takes the focus, then clicks.</summary>
     private static void RemoveRow(SettingsForm form, int index)

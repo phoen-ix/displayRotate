@@ -303,6 +303,9 @@ internal sealed class SettingsForm : Form
         var selected = _selectedRow is null ? -1 : _hotkeyRows.IndexOf(_selectedRow);
         if (selected < 0) return;
 
+        // The rebuild below drops the rows' controls; keep their edits (only the copies).
+        foreach (var row in _hotkeyRows)
+            row.ApplyToBinding();
         _hotkeys.RemoveAt(selected);
         BuildHotkeyRows();
     }
