@@ -26,18 +26,18 @@ public class SettingsFormTests
     [Fact]
     public void CancelKeepsTheHotkeys() => OnSta(() =>
     {
-        // Not the defaults, so Reset to Defaults changes something; and Reset first, so it can't
-        // undo what the others did.
+        // Not the defaults, so Reset to Defaults changes something; and Reset last, so the key
+        // is captured on one of the original bindings.
         var settings = AppSettings.CreateDefault();
         settings.Hotkeys.RemoveAt(3);
         var before = Describe(settings.Hotkeys);
         using var form = new SettingsForm(settings, new Updater(AppSettings.CreateDefault));
         Show(form);
 
-        Find<Button>(form, "Reset to Defaults").PerformClick();
         PressCtrlAltF5(form, 0);
         Find<Button>(form, "Add").PerformClick();
         RemoveRow(form, 1);
+        Find<Button>(form, "Reset to Defaults").PerformClick();
         Find<Button>(form, "Cancel").PerformClick();
 
         Assert.Equal(before, Describe(settings.Hotkeys));
