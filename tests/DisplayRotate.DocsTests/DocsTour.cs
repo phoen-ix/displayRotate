@@ -14,9 +14,8 @@ namespace DisplayRotate.DocsTests;
 /// DOCS_SCREENSHOT_DIR. Run through scripts/docs-screenshots.sh.
 /// </summary>
 /// <remarks>
-/// Left out: rotating a display (it changes the runner's screen), the tray balloons (the shell
-/// draws them), and Settings with auto-restore on, whose per-display rows currently overlap the
-/// Hotkeys heading - add that shot once the layout is fixed.
+/// Left out: rotating a display (it changes the runner's screen) and the tray balloons (the shell
+/// draws them).
 /// </remarks>
 [Trait("Category", "Docs")]
 public class DocsTour
@@ -55,6 +54,17 @@ public class DocsTour
         Assert.Contains(Controls(form), c => c is Label { Text: "Never checked." });
         Assert.Equal(4, Controls(form).Count(c => c is TextBox t && t.Text.StartsWith("Ctrl+Alt+", StringComparison.Ordinal)));
         Save(Window(form), "settings");
+    });
+
+    [Fact]
+    public void SettingsWithAutoRestore() => OnSta(() =>
+    {
+        var settings = AppSettings.CreateDefault();
+        settings.AutoRestoreOrientations = true;
+        using var form = new SettingsForm(settings, new Updater(AppSettings.CreateDefault));
+        Show(form);
+        SettingsFormTests.AssertRowsAboveHotkeys(form);
+        Save(Window(form), "settings-auto-restore");
     });
 
     [Fact]
@@ -113,7 +123,7 @@ public class DocsTour
         return (ContextMenuStrip)typeof(TrayApp).GetMethod("BuildMenu", Private)!.Invoke(tray, null)!;
     }
 
-    private static void Show(Form form)
+    internal static void Show(Form form)
     {
         form.StartPosition = FormStartPosition.Manual;
         form.Location = new Point(40, 40);
@@ -182,11 +192,11 @@ public class DocsTour
         }
     }
 
-    private static IEnumerable<Control> Controls(Control root) =>
+    internal static IEnumerable<Control> Controls(Control root) =>
         root.Controls.Cast<Control>().SelectMany(c => Controls(c).Prepend(c));
 
     /// <summary>WinForms wants a single-threaded apartment; xunit's threads are not one.</summary>
-    private static void OnSta(Action body)
+    internal static void OnSta(Action body)
     {
         Exception? failure = null;
         var thread = new Thread(() =>

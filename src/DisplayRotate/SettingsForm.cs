@@ -71,8 +71,23 @@ internal sealed class SettingsForm : Form
         _orientationsPanel = new Panel { Location = new Point(12, y), Size = new Size(530, 10), Visible = settings.AutoRestoreOrientations };
         mainPanel.Controls.Add(_orientationsPanel);
         BuildOrientationsPanel();
-        y += _orientationsPanel.Visible ? _orientationsPanel.Height + 8 : 0;
-        _chkAutoRestore.CheckedChanged += (_, _) => _orientationsPanel!.Visible = _chkAutoRestore.Checked;
+        // Not _orientationsPanel.Visible: that reads false until the form is shown.
+        var orientationsSpace = _orientationsPanel.Height + 8;
+        if (settings.AutoRestoreOrientations)
+        {
+            y += orientationsSpace;
+            Height += orientationsSpace;
+        }
+        // Showing or hiding the rows moves everything below them, and the form's bottom edge.
+        _chkAutoRestore.CheckedChanged += (_, _) =>
+        {
+            var shift = _chkAutoRestore.Checked ? orientationsSpace : -orientationsSpace;
+            foreach (Control c in mainPanel.Controls)
+                if (c != _orientationsPanel && c.Top >= _orientationsPanel.Top)
+                    c.Top += shift;
+            Height += shift;
+            _orientationsPanel.Visible = _chkAutoRestore.Checked;
+        };
 
         // --- Hotkeys ---
         var lblHotkeys = new Label { Text = "Hotkeys", Font = new Font("Segoe UI", 10, FontStyle.Bold), Location = new Point(12, y), AutoSize = true };
