@@ -20,9 +20,17 @@ Once a check has found a newer release, **Install DisplayRotate X.Y.Z…** heads
 ## Settings
 
 **Settings...** in the tray menu: general options, the hotkeys (click a hotkey's box and press
-the new combination), and the update choice.
+the new combination), and the update choice. **Save** keeps the changes to the options and
+hotkeys, **Cancel** drops them.
 
 <img src="settings.png" alt="The Settings dialog: General options, four Ctrl+Alt+arrow hotkeys for the primary display, and Updates set to Only when I ask, never checked">
+
+## Settings with auto-restore
+
+With **Auto-restore display orientations on startup** ticked, each display gets a row: its name,
+an **Identify** button, and the orientation DisplayRotate puts back every time it starts.
+
+<img src="settings-auto-restore.png" alt="The Settings dialog with auto-restore ticked: a row for display 1 with an Identify button and 0° (Landscape) chosen, above the hotkeys">
 
 ## Settings with an update
 

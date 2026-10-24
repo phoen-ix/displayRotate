@@ -45,7 +45,8 @@ jobs:
         run: dotnet test --solution DisplayRotate.slnx -c Release --no-build
 
       # The docs tour as a render check: every screenshot still builds. The PNGs stay in the
-      # runner's temp folder; the ones to commit come from docs-screenshots.yml.
+      # runner's temp folder; the ones to commit come from docs-screenshots.yml. The same
+      # project holds the Settings dialog's tests (WinForms, so Windows only).
       - name: Docs screenshots (render check)
         shell: bash
         run: bash scripts/docs-screenshots.sh "$(cygpath -u "$RUNNER_TEMP")/docs-screenshots"

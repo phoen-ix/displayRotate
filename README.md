@@ -180,7 +180,8 @@ shows, and saves it as a PNG. It needs Windows, so it is not part of `DisplayRot
   `docs/screenshots/` by default.
 
 Shrink them before committing (`oxipng -o 4 --strip safe docs/screenshots/*.png`). CI's
-Windows build job runs the same test as a render check.
+Windows build job runs the same project as a render check. It also holds the Settings dialog's
+tests (`SettingsFormTests`), which need Windows for the same reason.
 
 ## License
 
