@@ -76,13 +76,13 @@ public class SettingsFormTests
         Assert.True(rows.Bottom <= hotkeys.Top, $"the display rows end at {rows.Bottom}, the Hotkeys heading starts at {hotkeys.Top}");
     }
 
-    private static T Find<T>(Control form, string text) where T : Control =>
+    internal static T Find<T>(Control form, string text) where T : Control =>
         Controls(form).OfType<T>().First(c => c.Text == text);
 
     // Not every TextBox: the NumericUpDown has one inside.
     private static List<TextBox> HotkeyBoxes(Control form) => InHotkeyRows<TextBox>(form);
 
-    private static List<T> InHotkeyRows<T>(Control form) where T : Control =>
+    internal static List<T> InHotkeyRows<T>(Control form) where T : Control =>
         Controls(form).OfType<T>().Where(t => t.Parent is Panel { BorderStyle: BorderStyle.FixedSingle }).ToList();
 
     /// <summary>What a mouse click on Remove does: the button takes the focus, then clicks.</summary>

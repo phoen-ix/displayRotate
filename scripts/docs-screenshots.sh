@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Renders the docs screenshots: tests/DisplayRotate.DocsTests builds the app's real windows and
-# saves them as PNGs into $1 (default docs/screenshots). Windows only (Git Bash, or the
+# Renders the docs screenshots: the docs tour in tests/DisplayRotate.DocsTests (Category=Docs; the
+# rest of the project is the e2e suite, scripts/e2e.sh) builds the app's real windows and saves
+# them as PNGs into $1 (default docs/screenshots). Windows only (Git Bash, or the
 # docs-screenshots workflow on windows-latest): the windows need a desktop session to draw.
 # The title bars show the latest release tag; DOCS_VERSION overrides it.
 set -euo pipefail
@@ -20,4 +21,4 @@ artifacts=${ARTIFACTS:-$(mktemp -d)}
 echo "docs-screenshots: v${version#v} -> $out"
 project=tests/DisplayRotate.DocsTests/DisplayRotate.DocsTests.csproj
 dotnet build "$project" -c Release -p:Version="${version#v}"
-DOCS_SCREENSHOT_DIR="$out" dotnet test --project "$project" -c Release --no-build --results-directory "$artifacts"
+DOCS_SCREENSHOT_DIR="$out" dotnet test --project "$project" -c Release --no-build --filter-trait "Category=Docs" --results-directory "$artifacts"

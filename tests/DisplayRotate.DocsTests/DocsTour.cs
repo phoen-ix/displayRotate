@@ -195,24 +195,37 @@ public class DocsTour
     internal static IEnumerable<Control> Controls(Control root) =>
         root.Controls.Cast<Control>().SelectMany(c => Controls(c).Prepend(c));
 
-    /// <summary>WinForms wants a single-threaded apartment; xunit's threads are not one.</summary>
+    /// <summary>
+    /// WinForms wants a single-threaded apartment; xunit's threads are not one. An exception a
+    /// window's message handler throws (a click, a timer, an async handler) fails the test too,
+    /// instead of opening WinForms' error dialog.
+    /// </summary>
     internal static void OnSta(Action body)
     {
         Exception? failure = null;
         var thread = new Thread(() =>
         {
+            var unhandled = new List<Exception>();
+            Application.ThreadException += (_, e) => unhandled.Add(e.Exception);
             try
             {
                 body();
+                if (unhandled.Count > 0)
+                {
+                    throw new AggregateException("a window's message handler threw", unhandled);
+                }
             }
             catch (Exception e)
             {
                 failure = e;
             }
-        });
+        }) { IsBackground = true };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        thread.Join();
+        if (!thread.Join(TimeSpan.FromSeconds(90)))
+        {
+            throw new TimeoutException("the UI thread still runs after 90 s: a dialog or message box nobody closed?");
+        }
 
         if (failure is not null)
         {
