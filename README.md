@@ -180,8 +180,19 @@ shows, and saves it as a PNG. It needs Windows, so it is not part of `DisplayRot
   `docs/screenshots/` by default.
 
 Shrink them before committing (`oxipng -o 4 --strip safe docs/screenshots/*.png`). CI's
-Windows build job runs the same project as a render check. It also holds the Settings dialog's
-tests (`SettingsFormTests`), which need Windows for the same reason.
+Windows build job runs the tour as a render check.
+
+## E2E
+
+The rest of that project is the end-to-end suite. It drives the real tray app, the Settings
+dialog, the Identify overlay and `DisplayRotate.exe` on a Windows desktop. Updates are checked
+against a fake GitHub, and no display is turned. [`tests/COVERAGE.md`](tests/COVERAGE.md) maps
+every feature to its test, or says why there is none.
+
+- **On GitHub:** CI's `e2e` job (windows-latest) runs it on every push and pull request.
+- **On Windows** (Git Bash): `bash scripts/e2e.sh`. It uses your own settings file and
+  autostart entry, and puts both back afterwards. The tray tests skip while DisplayRotate runs,
+  so quit it first.
 
 ## License
 
