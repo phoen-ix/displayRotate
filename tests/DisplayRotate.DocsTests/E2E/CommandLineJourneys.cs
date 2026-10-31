@@ -61,7 +61,9 @@ public class CommandLineJourneys
         using var first = Process.Start(Exe)!;
         try
         {
+            // Main takes the mutex first; the quit event comes later, from TrayApp's constructor.
             Wait(() => Mutex.TryOpenExisting(Names.SingleInstanceMutex, out var m) && Dispose(m!), "the tray instance to take its mutex", 30);
+            Wait(() => EventWaitHandle.TryOpenExisting(Names.QuitEvent, out var e) && Dispose(e!), "the tray instance to listen for the quit event", 30);
 
             using (var second = Process.Start(Exe)!)
             {
