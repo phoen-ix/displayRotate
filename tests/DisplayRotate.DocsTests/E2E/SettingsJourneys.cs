@@ -117,6 +117,30 @@ public class SettingsJourneys
     }
 
     [Fact]
+    public void AddPutsTheNewRowUnderTheLastOneWhenTheListIsScrolled()
+    {
+        OnSta(() =>
+        {
+            using var form = Open();
+            var add = Find<Button>(form, "Add");
+            for (var i = 0; i < 6; i++)
+            {
+                add.PerformClick();
+            }
+
+            var list = (Panel)InHotkeyRows<TextBox>(form)[0].Parent!;
+            list.AutoScrollPosition = new Point(0, 1000);
+            Application.DoEvents();
+            Assert.True(list.AutoScrollPosition.Y < 0, "ten rows did not make the hotkey list scroll");
+
+            add.PerformClick();
+
+            var boxes = InHotkeyRows<TextBox>(form);
+            Assert.Equal(30, boxes[^1].Top - boxes[^2].Top);
+        });
+    }
+
+    [Fact]
     public void RemoveWithNoRowChosenRemovesNothing()
     {
         OnSta(() =>

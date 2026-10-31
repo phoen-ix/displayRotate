@@ -279,7 +279,8 @@ internal sealed class SettingsForm : Form
 
     private void AddHotkeyRow(HotkeyBinding binding)
     {
-        var row = new HotkeyRow(binding, _hotkeyRows.Count + 1, _hotkeyRows.Count * 30 + 2, _hotkeysPanel);
+        // Locations in a scrolled panel count from what is in view, not from its top.
+        var row = new HotkeyRow(binding, _hotkeyRows.Count + 1, _hotkeyRows.Count * 30 + 2 + _hotkeysPanel.AutoScrollPosition.Y, _hotkeysPanel);
         row.Entered += () => _selectedRow = row;
         _hotkeyRows.Add(row);
     }
