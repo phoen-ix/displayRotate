@@ -258,7 +258,7 @@ internal sealed class SettingsForm : Form
             btnIdentify.Click += (_, _) => OverlayForm.ShowIdentifyOverlay(idx, devName, dur);
             _orientationsPanel.Controls.Add(btnIdentify);
 
-            var combo = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(300, oy), Width = 170 };
+            var combo = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(300, oy), Width = 170, AccessibleName = $"Display {d.Index} orientation" };
             combo.Items.AddRange(new object[] { "0° (Landscape)", "90° (Portrait)", "180° (Landscape flipped)", "270° (Portrait flipped)" });
             int savedOrientation = _settings.PreferredOrientations.GetValueOrDefault(d.DeviceName, d.CurrentOrientation);
             combo.SelectedIndex = Math.Clamp(savedOrientation, 0, 3);
@@ -279,7 +279,7 @@ internal sealed class SettingsForm : Form
 
     private void AddHotkeyRow(HotkeyBinding binding)
     {
-        var row = new HotkeyRow(binding, _hotkeyRows.Count * 30 + 2, _hotkeysPanel);
+        var row = new HotkeyRow(binding, _hotkeyRows.Count + 1, _hotkeyRows.Count * 30 + 2, _hotkeysPanel);
         row.Entered += () => _selectedRow = row;
         _hotkeyRows.Add(row);
     }
@@ -355,16 +355,17 @@ internal sealed class SettingsForm : Form
 
         public event Action? Entered;
 
-        public HotkeyRow(HotkeyBinding binding, int y, Panel parent)
+        /// <param name="number">The row's place in the list, for the names a screen reader reads (the list has no headings).</param>
+        public HotkeyRow(HotkeyBinding binding, int number, int y, Panel parent)
         {
             _binding = binding;
             _modifiers = binding.Modifiers;
             _virtualKey = binding.VirtualKey;
 
-            _chkEnabled = new CheckBox { Location = new Point(4, y + 3), AutoSize = true, Checked = binding.IsEnabled };
+            _chkEnabled = new CheckBox { Location = new Point(4, y + 3), AutoSize = true, Checked = binding.IsEnabled, AccessibleName = $"Hotkey {number} on" };
             parent.Controls.Add(_chkEnabled);
 
-            _cmbDisplay = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(28, y), Width = 100 };
+            _cmbDisplay = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(28, y), Width = 100, AccessibleName = $"Hotkey {number} display" };
             _cmbDisplay.Items.Add("Primary");
             var displays = DisplayManager.GetDisplays();
             foreach (var d in displays)
@@ -372,7 +373,7 @@ internal sealed class SettingsForm : Form
             _cmbDisplay.SelectedIndex = Math.Min(binding.TargetDisplayIndex, _cmbDisplay.Items.Count - 1);
             parent.Controls.Add(_cmbDisplay);
 
-            _cmbOrientation = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(134, y), Width = 160 };
+            _cmbOrientation = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(134, y), Width = 160, AccessibleName = $"Hotkey {number} orientation" };
             _cmbOrientation.Items.AddRange(new object[] { "0° (Landscape)", "90° (Portrait)", "180° (Landscape flipped)", "270° (Portrait flipped)" });
             _cmbOrientation.SelectedIndex = Math.Clamp(binding.TargetOrientation, 0, 3);
             parent.Controls.Add(_cmbOrientation);
@@ -383,6 +384,7 @@ internal sealed class SettingsForm : Form
                 Width = 200,
                 ReadOnly = true,
                 Text = binding.FormatHotkey(),
+                AccessibleName = $"Hotkey {number} keys",
                 BackColor = SystemColors.Window,
                 Cursor = Cursors.Hand
             };

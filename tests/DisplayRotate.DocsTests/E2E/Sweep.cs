@@ -81,9 +81,27 @@ public class Sweep
                     Show(form);
                     Assert.Equal($"DisplayRotate Settings — v{ProductInfo.Version}", form.Text);
                     Assert.All(["General", "Hotkeys", "Updates"], heading => Assert.True(SettingsFormTests.Find<Label>(form, heading).Visible));
+                    AssertEveryInputIsNamed(form);
                     break;
                 }
             }
+        });
+    }
+
+    /// <summary>
+    /// What a screen reader reads out for each visible input: a button's own text, its
+    /// AccessibleName, or the label right before it (the one Windows takes as its name).
+    /// </summary>
+    private static void AssertEveryInputIsNamed(Form form)
+    {
+        var inputs = Controls(form).Where(c => c.Visible && c is ButtonBase or ComboBox or TextBox or NumericUpDown && c.Parent is not UpDownBase);
+        Assert.All(inputs, c =>
+        {
+            var index = c.Parent!.Controls.GetChildIndex(c);
+            var named = !string.IsNullOrEmpty(c.AccessibleName)
+                || (c is ButtonBase && !string.IsNullOrEmpty(c.Text))
+                || (index > 0 && c.Parent.Controls[index - 1] is Label);
+            Assert.True(named, $"a {c.GetType().Name} at {c.Location} in a {c.Parent.GetType().Name} has no name");
         });
     }
 }
