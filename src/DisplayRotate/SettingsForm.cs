@@ -387,6 +387,8 @@ internal sealed class SettingsForm : Form
                 Cursor = Cursors.Hand
             };
             _txtHotkey.KeyDown += OnHotkeyKeyDown;
+            // Escape clears the box (OnHotkeyKeyDown); otherwise the dialog takes it first, as Cancel.
+            _txtHotkey.PreviewKeyDown += (_, e) => e.IsInputKey |= e.KeyCode == Keys.Escape;
             _txtHotkey.GotFocus += (_, _) => _txtHotkey.BackColor = Color.LightYellow;
             _txtHotkey.LostFocus += (_, _) => _txtHotkey.BackColor = SystemColors.Window;
             parent.Controls.Add(_txtHotkey);

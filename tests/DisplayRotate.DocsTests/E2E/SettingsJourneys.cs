@@ -81,6 +81,21 @@ public class SettingsJourneys
     }
 
     [Fact]
+    public void EscapeInAHotkeyBoxClearsItAndKeepsSettingsOpen()
+    {
+        OnSta(() =>
+        {
+            using var form = Open();
+            var box = InHotkeyRows<TextBox>(form)[0];
+
+            Press(box, Keys.Escape);
+
+            Assert.Equal("(None)", box.Text);
+            Assert.Equal(DialogResult.None, form.DialogResult);
+        });
+    }
+
+    [Fact]
     public void AddAppendsAnEmptyHotkeyForThePrimaryDisplay()
     {
         OnSta(() =>
