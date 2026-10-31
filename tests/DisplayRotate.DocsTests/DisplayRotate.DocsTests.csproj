@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- The docs screenshot tour (scripts/docs-screenshots.sh): builds the app's real windows and
-       saves them as PNGs. Also the Settings dialog's tests (SettingsFormTests). It needs Windows
-       and a desktop session, so it stays out of DisplayRotate.slnx, whose tests run on Linux too. -->
+  <!-- The docs screenshot tour (scripts/docs-screenshots.sh, Category=Docs): builds the app's
+       real windows and saves them as PNGs. Everything else is the e2e suite (scripts/e2e.sh,
+       tests/COVERAGE.md). It needs Windows and a desktop session, so it stays out of
+       DisplayRotate.slnx, whose tests run on Linux too. -->
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>

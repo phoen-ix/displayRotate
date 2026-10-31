@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using DisplayRotate.Core;
 using DisplayRotate.Core.Updates;
 using Microsoft.Win32;
@@ -141,6 +142,80 @@ internal static class Harness
 
     public const uint CtrlAlt = NativeMethods.MOD_CONTROL | NativeMethods.MOD_ALT;
 
+    /// <summary>
+    /// Runs <paramref name="act"/>, which opens a message box on this thread, answers the box with
+    /// <paramref name="answer"/> from a timer (it runs inside the box's own message loop) and
+    /// returns the box's text.
+    /// </summary>
+    public static string AnswerMessageBox(Action act, DialogResult answer)
+    {
+        string? text = null;
+        var timer = new System.Windows.Forms.Timer { Interval = 50 };
+        timer.Tick += (_, _) =>
+        {
+            var box = IntPtr.Zero;
+            EnumThreadWindows(GetCurrentThreadId(), (window, _) =>
+            {
+                var name = new StringBuilder(16);
+                GetClassName(window, name, name.Capacity);
+                if (name.ToString() != "#32770" || !IsWindowVisible(window))
+                {
+                    return true;
+                }
+
+                box = window;
+                return false;
+            }, IntPtr.Zero);
+            if (box == IntPtr.Zero)
+            {
+                return;
+            }
+
+            timer.Stop();
+            var label = new StringBuilder(1024);
+            GetWindowText(GetDlgItem(box, 0xFFFF), label, label.Capacity);
+            text = label.ToString();
+            PostMessage(box, WM_COMMAND, (nint)answer, IntPtr.Zero);
+        };
+        timer.Start();
+        try
+        {
+            act();
+        }
+        finally
+        {
+            timer.Dispose();
+        }
+
+        Assert.True(text is not null, "no message box opened");
+        return text.ReplaceLineEndings("\n");
+    }
+
+    private const int WM_COMMAND = 0x0111;
+
+    private delegate bool EnumWindowsProc(IntPtr window, IntPtr param);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumThreadWindows(uint threadId, EnumWindowsProc callback, IntPtr param);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr window, StringBuilder text, int size);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetDlgItem(IntPtr dialog, int id);
+
+    [DllImport("user32.dll")]
+    private static extern bool PostMessage(IntPtr window, int message, nint wParam, IntPtr lParam);
+
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
 
@@ -176,6 +251,11 @@ internal sealed class Tray : IDisposable
         (typeof(NotifyIcon).GetMethod("OnMouseClick", Private) ?? throw new MissingMethodException(nameof(NotifyIcon), "OnMouseClick"))
             .Invoke(Icon, [new MouseEventArgs(button, 1, 0, 0, 0)]);
 
+    /// <summary>A click on the balloon showing now, as the shell reports it.</summary>
+    public void ClickBalloon() =>
+        (typeof(NotifyIcon).GetMethod("OnBalloonTipClicked", Private) ?? throw new MissingMethodException(nameof(NotifyIcon), "OnBalloonTipClicked"))
+            .Invoke(Icon, null);
+
     public void Dispose() => App.Dispose();
 }
 
@@ -207,18 +287,25 @@ internal sealed class FakeReleases : IReleaseSource, IInstallerLauncher
 /// The account's settings file and autostart value, seeded for a test and put back as they were
 /// when it ends. The app has one settings path (%APPDATA%\DisplayRotate), so the tests use it.
 /// </summary>
-internal sealed class UserState : IDisposable
+internal sealed class UserState : UserBackup
 {
-    private static readonly string SettingsPath = AppSettings.GetSettingsPath();
-    private readonly byte[]? _settings = File.Exists(SettingsPath) ? File.ReadAllBytes(SettingsPath) : null;
-    private readonly string? _run = RunValue;
-
     public UserState(Action<AppSettings>? seed = null)
     {
         var settings = AppSettings.CreateDefault();
         seed?.Invoke(settings);
         settings.Save();
     }
+}
+
+/// <summary>
+/// The account's settings file and autostart value as they are now, put back on Dispose.
+/// DocsTour.OnSta takes one too, so a test its time limit stops still puts them back.
+/// </summary>
+internal class UserBackup : IDisposable
+{
+    private static readonly string SettingsPath = AppSettings.GetSettingsPath();
+    private readonly byte[]? _settings = File.Exists(SettingsPath) ? File.ReadAllBytes(SettingsPath) : null;
+    private readonly string? _run = RunValue;
 
     public static AppSettings Saved => AppSettings.Load();
 
@@ -249,7 +336,11 @@ internal sealed class UserState : IDisposable
     {
         if (_settings is null)
         {
-            File.Delete(SettingsPath);
+            // File.Delete throws when the folder is missing too.
+            if (File.Exists(SettingsPath))
+            {
+                File.Delete(SettingsPath);
+            }
         }
         else
         {

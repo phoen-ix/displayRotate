@@ -215,6 +215,28 @@ public class TrayJourneys
     }
 
     [Fact]
+    public void InstallOnACopyThatWasNotInstalledOffersTheDownloadPage()
+    {
+        NoOtherCopy();
+        OnSta(() =>
+        {
+            using var state = new UserState();
+            using var tray = new Tray();
+            tray.Releases.Latest = Newer;
+            tray.Item("Check for updates").PerformClick();
+            Until(() => !tray.Updater.Busy, "the check");
+            // The test host is a portable copy, as Updater.DetectInstall sees it.
+            var prompt = $"DisplayRotate {Newer.ToString(3)} is available.\n\nThis copy was not installed, so it can't update itself. Open the download page?";
+
+            Assert.Equal(prompt, AnswerMessageBox(tray.ClickBalloon, DialogResult.No));
+            tray.ClickIcon(MouseButtons.Right);
+            Assert.Equal(prompt, AnswerMessageBox(() => tray.Item($"Install DisplayRotate {Newer.ToString(3)}…").PerformClick(), DialogResult.No));
+
+            Assert.False(tray.Updater.Busy || tray.Updater.Installing);
+        });
+    }
+
+    [Fact]
     public void ChecksTurnedOffByPolicyGreyOutCheckForUpdates()
     {
         NoOtherCopy();

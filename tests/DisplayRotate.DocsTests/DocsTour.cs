@@ -198,10 +198,13 @@ public class DocsTour
     /// <summary>
     /// WinForms wants a single-threaded apartment; xunit's threads are not one. An exception a
     /// window's message handler throws (a click, a timer, an async handler) fails the test too,
-    /// instead of opening WinForms' error dialog.
+    /// instead of opening WinForms' error dialog. The settings file and autostart value are put
+    /// back here as well, so a test stopped by the time limit leaves them as they were (a tray
+    /// app it left running keeps its hotkeys until the test run ends).
     /// </summary>
     internal static void OnSta(Action body)
     {
+        using var backup = new E2E.UserBackup();
         Exception? failure = null;
         var thread = new Thread(() =>
         {

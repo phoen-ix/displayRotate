@@ -1,19 +1,23 @@
 # E2E coverage: displayRotate
 
-Extracted 2026-10-31 from `src/DisplayRotate` (68 items: windows, menu items, labelled controls,
+Extracted 2026-10-31 from `src/DisplayRotate` (69 items: windows, menu items, labelled controls,
 event handlers, balloons, message boxes, CLI commands, update outcomes):
 
 ```sh
 grep -rnoE --include=*.cs --exclude-dir=obj 'class \w+ : (Form|ApplicationContext|NativeWindow)|new ToolStripMenuItem\(\$?"[^"]*"|ShowBalloon\("[^"]*"|MessageBox\.Show\(|Text = "[^"]+"|case "[^"]+"|CheckOutcome\.\w+ =>|(Click|CheckedChanged|KeyDown|Tick|MouseClick|BalloonTipClicked) \+=' src/DisplayRotate
 ```
 
-Every row below names the source lines (file:line, at the commit that added this file) it
+Every row below names the source lines (file:line, as of the date above) it
 covers. Tests live in `tests/DisplayRotate.DocsTests` (Windows only); `scripts/e2e.sh` runs all
 of them except the docs tour (`Category=Docs`). There is one role (the signed-in user) and no
 language switch or theme. Reasons for ❌: (a) needs hardware, (b) irreversible external effect,
 (c) covered at another layer, (d) cannot be driven, (e) time box.
 
-**Count: 57 rows: ✅ 46 · ❌ 11 (a 4, b 1, c 4, d 2, e 0).**
+**Count: 58 rows: ✅ 47 · ❌ 11 (a 4, b 1, c 5, d 1, e 0).**
+
+No retries, in CI either: a red e2e job holds back the release, and the test platform's retry
+extension (Microsoft.Testing.Extensions.Retry) comes under a licence that has to be accepted,
+unlike everything else this MIT project uses.
 
 ## Breadth
 
@@ -40,7 +44,8 @@ language switch or theme. Reasons for ❌: (a) needs hardware, (b) irreversible 
 | Install DisplayRotate X… item (bold, top) after a check found one | TrayApp.cs:299 | ✅ `TrayJourneys › CheckForUpdatesAnswersInABalloon` (newer) |
 | Check for updates greyed out when policy turns checks off | TrayApp.cs:364, Updater.cs:134 | ✅ `TrayJourneys › ChecksTurnedOffByPolicyGreyOutCheckForUpdates` |
 | Daily check: runs when chosen and due, balloon, once a day; never in manual mode | TrayApp.cs:76 | ✅ `TrayJourneys › TheScheduledCheckRunsOnlyWhenChosenAndOnlyOnceADay` (2 cases) |
-| Install item / balloon click: portable copy asks to open the download page; installed copy asks to install | TrayApp.cs:51, 179, 189, 304 | ❌ (d) native MessageBox (Yes opens a browser or the elevation prompt); the engine behind it is (c) `UpdateEngineTests` |
+| Install item / balloon click on a copy that was not installed: asks to open the download page, No changes nothing | TrayApp.cs:51, 179, 304 | ✅ `TrayJourneys › InstallOnACopyThatWasNotInstalledOffersTheDownloadPage` |
+| Install item / balloon click on an installed copy: asks to install, Yes runs the installer | TrayApp.cs:189 | ❌ (c) which copy counts as installed: `ReleaseAssetTests › OnlyTheFolderAnInstallerRecordedCountsAsInstalled`; what Yes runs: `UpdateEngineTests › APerUserInstallRunsTheVerifiedInstallerSilentlyWithoutElevation`, `APerMachineInstallAsksForElevationUnlessItHasIt`, `ADeclinedPromptChangesNothing`. Reaching the box here would mean pointing the account's real Add/Remove Programs entry at the test folder |
 | Install outcome balloons/box: Updating, Update cancelled, failure | TrayApp.cs:206-215 | ❌ (c) outcomes: `UpdateEngineTests › APerUserInstallRunsTheVerifiedInstallerSilentlyWithoutElevation`, `ADeclinedPromptChangesNothing`, `AnInstallerThatWillNotStartIsReported`; the real install: ci.yml installer-smoke |
 | Watchdog: an install that never closed the app is reported | Updater.cs:24 | ✅ `TrayJourneys › AnInstallThatNeverClosedTheAppIsReported` |
 | Hotkeys: enabled ones held while running, switched-off ones not, released on exit | TrayApp.cs:416 | ✅ `TrayJourneys › TheEnabledHotkeysAreHeldWhileTheAppRuns` |
@@ -59,13 +64,13 @@ language switch or theme. Reasons for ❌: (a) needs hardware, (b) irreversible 
 | --- | --- | --- |
 | Save writes every choice: Start with Windows (+ Run value, and its removal), Show Identify, auto-restore + per-display orientation, overlay duration, daily checks, hotkey on/off, display, orientation, keys; no temp file left | SettingsForm.cs:53-65, 98, 121-128, 156, 157 | ✅ `SettingsJourneys › SaveWritesEveryChoice` |
 | Cancel discards hotkey edits (Add, Remove, Reset, a captured key) | SettingsForm.cs:160 | ✅ `SettingsFormTests › CancelKeepsTheHotkeys` |
-| Enter saves, Escape cancels | SettingsForm.cs:156, 160 | ✅ `SettingsJourneys › EnterSavesAndEscapeCancels` |
+| Enter saves, Escape cancels (pressed on a checkbox) | SettingsForm.cs:156, 160 | ✅ `SettingsJourneys › EnterSavesAndEscapeCancels` |
 | Auto-restore on/off moves everything below and the window edge | SettingsForm.cs:87 | ✅ `SettingsFormTests › TickingAutoRestoreMakesRoomForTheDisplayRows` |
 | Per-display rows list every display with its current orientation; hotkey display choices list Primary + every display | SettingsForm.cs:254 | ✅ `SettingsJourneys › TheChoicesListEveryDisplay` |
 | Identify next to a display: its number on it | SettingsForm.cs:258 | ✅ `SettingsJourneys › IdentifyNextToADisplayShowsItsNumberOnIt` |
 | Overlay duration 1–5 s, out-of-range values clamped | SettingsForm.cs:69 | ✅ `SettingsJourneys › TheOverlayDurationIsOneToFiveSeconds` |
-| Hotkey box: combination with Ctrl/Alt/Shift taken, Backspace clears, no modifier or a modifier alone ignored | SettingsForm.cs:389, 418 | ✅ `SettingsJourneys › AHotkeyBoxTakesTheCombinationPressedInIt` (7 cases) |
-| Escape in a hotkey box clears it, Settings stays open | SettingsForm.cs:410 | ✅ `SettingsJourneys › EscapeInAHotkeyBoxClearsItAndKeepsSettingsOpen` (fixed in this wave) |
+| Hotkey box: combination with Ctrl/Alt/Shift taken, Backspace clears, no modifier or a modifier alone ignored | SettingsForm.cs:392, 423 | ✅ `SettingsJourneys › AHotkeyBoxTakesTheCombinationPressedInIt` (7 cases) |
+| Escape in a hotkey box clears it, Settings stays open | SettingsForm.cs:394, 415 | ✅ `SettingsJourneys › EscapeInAHotkeyBoxClearsItAndKeepsSettingsOpen` (fixed in this wave) |
 | Add: empty hotkey for Primary at 0°, saved | SettingsForm.cs:107, 108 | ✅ `SettingsJourneys › AddAppendsAnEmptyHotkeyForThePrimaryDisplay` |
 | Add after scrolling the list: row lands under the last one | SettingsForm.cs:108 | ✅ `SettingsJourneys › AddPutsTheNewRowUnderTheLastOneWhenTheListIsScrolled` (fixed in this wave) |
 | Remove: the row last focused | SettingsForm.cs:111, 112 | ✅ `SettingsFormTests › RemoveDeletesTheRowLastFocused` |

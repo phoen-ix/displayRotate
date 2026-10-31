@@ -234,10 +234,33 @@ public class SettingsJourneys
     {
         OnSta(() =>
         {
-            using var form = Open();
+            using var state = new UserState();
+            var file = File.ReadAllBytes(UserState.SettingsFile);
+            using (var form = Open(AppSettings.Load()))
+            {
+                var identify = Find<CheckBox>(form, "Show Identify buttons in context menu");
+                identify.Checked = false;
+                identify.Select();
 
-            Assert.Same(Find<Button>(form, "Save"), form.AcceptButton);
-            Assert.Same(Find<Button>(form, "Cancel"), form.CancelButton);
+                Press(identify, Keys.Escape);
+
+                Assert.Equal(DialogResult.Cancel, form.DialogResult);
+            }
+
+            Assert.Equal(file, File.ReadAllBytes(UserState.SettingsFile));
+
+            using (var form = Open(AppSettings.Load()))
+            {
+                var identify = Find<CheckBox>(form, "Show Identify buttons in context menu");
+                identify.Checked = false;
+                identify.Select();
+
+                Press(identify, Keys.Enter);
+
+                Assert.Equal(DialogResult.OK, form.DialogResult);
+            }
+
+            Assert.False(UserState.Saved.ShowIdentifyButtons);
         });
     }
 
@@ -352,10 +375,10 @@ public class SettingsJourneys
         Controls(form).OfType<Button>().SingleOrDefault(b => b.Visible && (b.Text.StartsWith("Update to ", StringComparison.Ordinal) || b.Text == "Open download page"));
 
     /// <summary>
-    /// A key pressed in the box the way the message loop delivers it: the dialog gets its turn
-    /// first (Enter, Escape, Tab, arrows), and only what it leaves reaches the box.
+    /// A key pressed in the control the way the message loop delivers it: the dialog gets its
+    /// turn first (Enter, Escape, Tab, arrows), and only what it leaves reaches the control.
     /// </summary>
-    internal static void Press(TextBox box, Keys keys)
+    internal static void Press(Control box, Keys keys)
     {
         // Ctrl, Alt and Shift as held down: what GetKeyState, and so Control.ModifierKeys, reads.
         var held = new byte[256];
