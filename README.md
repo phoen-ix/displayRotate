@@ -189,7 +189,8 @@ dialog, the Identify overlay and `DisplayRotate.exe` on a Windows desktop. Updat
 against a fake GitHub, and no display is turned. [`tests/COVERAGE.md`](tests/COVERAGE.md) maps
 every feature to its test, or says why there is none.
 
-- **On GitHub:** CI's `e2e` job (windows-latest) runs it on every push and pull request.
+- **On GitHub:** CI's `e2e` job (windows-latest) runs it on every push to master and every
+  pull request, without retries. A red run holds back the release.
 - **On Windows** (Git Bash): `bash scripts/e2e.sh`. It uses your own settings file and
   autostart entry, and puts both back afterwards. The tray tests skip while DisplayRotate runs,
   so quit it first.
