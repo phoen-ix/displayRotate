@@ -45,11 +45,33 @@ jobs:
         run: dotnet test --solution DisplayRotate.slnx -c Release --no-build
 
       # The docs tour as a render check: every screenshot still builds. The PNGs stay in the
-      # runner's temp folder; the ones to commit come from docs-screenshots.yml. The same
-      # project holds the Settings dialog's tests (WinForms, so Windows only).
+      # runner's temp folder; the ones to commit come from docs-screenshots.yml.
       - name: Docs screenshots (render check)
         shell: bash
         run: bash scripts/docs-screenshots.sh "$(cygpath -u "$RUNNER_TEMP")/docs-screenshots"
+
+  # The e2e suite (scripts/e2e.sh, tests/COVERAGE.md): the tray app, the Settings dialog, the
+  # Identify overlay and DisplayRotate.exe, driven on the runner's desktop. WinForms, so Windows.
+  e2e:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: E2E suite
+        shell: bash
+        run: ARTIFACTS="$(cygpath -u "$RUNNER_TEMP")/e2e" bash scripts/e2e.sh
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: e2e-results
+          path: ${{ runner.temp }}/e2e/
+          retention-days: 14
 
   linux:
     runs-on: ubuntu-latest
@@ -292,7 +314,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/master' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: [build, linux, installer, installer-smoke]
+    needs: [build, linux, installer, installer-smoke, e2e]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -366,7 +388,7 @@ jobs:
           echo "new_version=${MA}.${MI}.${PA}" >> "$GITHUB_OUTPUT"
 
   release:
-    needs: [version, build, linux, installer, installer-smoke]
+    needs: [version, build, linux, installer, installer-smoke, e2e]
     if: needs.version.outputs.new_tag != ''
     runs-on: windows-latest
     timeout-minutes: 30
