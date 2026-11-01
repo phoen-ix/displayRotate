@@ -1,10 +1,12 @@
 # DisplayRotate
 
-<img src="docs/screenshots/tray-menu.png" alt="The DisplayRotate tray menu: display 1 with its resolution and four orientations, Identify, Identify Displays, Settings..., Check for updates and Exit">
-
 Rotate any display on Windows 10 and 11 from the system tray, a hotkey, or the command line.
 Landscape, portrait, flipped either way. Pick it per monitor from the tray menu, bind your own
 hotkeys to any display and angle, and have your preferred orientations come back at startup.
+
+<img src="docs/screenshots/tray-menu.png" alt="The DisplayRotate tray menu: display 1 with its resolution and four orientations, Identify, Identify Displays, Settings..., Check for updates and Exit">
+
+**Status:** actively developed (0.1.x); every release is on the [releases page](https://github.com/phoen-ix/displayRotate/releases).
 
 A native Windows app (C# / .NET 10, WinForms), using the same Win32 display API the Settings
 app does (`ChangeDisplaySettingsEx`).
