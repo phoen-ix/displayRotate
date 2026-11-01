@@ -15,6 +15,8 @@
 ; The installed exe is always named DisplayRotate.exe.
 ;
 ; Switches: /S  /CurrentUser  /AllUsers  /RESTART  /NORUNTIME  /D=<dir> (last)
+;           /RESUME is internal: the elevated copy ElevateForAllUsers starts gets it, and opens
+;           on the step after the scope page instead of on Welcome again.
 ; Exit codes: 2 = silent /AllUsers without administrator rights (nothing installed)
 ;             3 = silent /NORUNTIME minimal install with the .NET runtime missing (nothing installed)
 ; packaging/README.md explains the design; ci.yml's installer-smoke job proves it on Windows.
@@ -101,6 +103,8 @@ Var DotnetFound      ; "1" | "0" - set by DotnetPresent
 Var NoRuntime        ; "1" when /NORUNTIME was passed - never fetch .NET unattended
 !endif
 Var RestartApp       ; "1" when /RESTART was passed - a silent install relaunches DisplayRotate
+Var Resume           ; "1" in the elevated copy ElevateForAllUsers started (/RESUME), "2" once
+                     ; it has shown its first page: Welcome, License and the scope page were done
 
 ; ---- UI ----
 !define MUI_ICON "${ICON_SRC}"
@@ -111,15 +115,22 @@ Var RestartApp       ; "1" when /RESTART was passed - a silent install relaunche
 !define MUI_FINISHPAGE_RUN_TEXT "Launch DisplayRotate now"
 !define MUI_FINISHPAGE_RUN_FUNCTION "LaunchApp"
 
+; The elevated copy that "anyone who uses this computer" starts skips the three pages the
+; first copy already showed and continues at the next step (SkipIfResumed,
+; FirstPageAfterResume), rather than greeting the user all over again.
+!define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfResumed
 !insertmacro MUI_PAGE_WELCOME
+!define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfResumed
 !insertmacro MUI_PAGE_LICENSE "..\LICENSE"
 ; Elevate the moment "anyone who uses this computer" is actually chosen - see
 ; ElevateForAllUsers. The define is consumed by the page macro below.
+!define MULTIUSER_PAGE_CUSTOMFUNCTION_PRE SkipIfResumed
 !define MULTIUSER_PAGE_CUSTOMFUNCTION_LEAVE ElevateForAllUsers
 !insertmacro MULTIUSER_PAGE_INSTALLMODE
 !ifndef SINGLE_BUILD
 Page custom BuildPageCreate BuildPageLeave
 !endif
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW FirstPageAfterResume
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -129,6 +140,23 @@ Page custom BuildPageCreate BuildPageLeave
 !insertmacro MUI_UNPAGE_INSTFILES
 
 !insertmacro MUI_LANGUAGE "English"
+
+; ---- the elevated copy continues where the first one stopped ----
+; A page the first copy already showed: skipped in the elevated copy.
+Function SkipIfResumed
+  ${If} $Resume != ""
+    Abort
+  ${EndIf}
+FunctionEnd
+
+; The elevated copy's first page has no Back: the pages behind it were the first copy's.
+Function FirstPageAfterResume
+  ${If} $Resume == "1"
+    GetDlgItem $0 $HWNDPARENT 3
+    EnableWindow $0 0
+    StrCpy $Resume "2"
+  ${EndIf}
+FunctionEnd
 
 ; ---- custom "which build" page (standard installer only) ----
 !ifndef SINGLE_BUILD
@@ -147,6 +175,7 @@ Function BuildPageCreate
   ${Else}
     ${NSD_Check} $RbFull
   ${EndIf}
+  Call FirstPageAfterResume
   nsDialogs::Show
 FunctionEnd
 
@@ -599,6 +628,17 @@ Function .onInit
   ${IfNot} ${Errors}
     StrCpy $RestartApp "1"
   ${EndIf}
+  ; /RESUME (internal) - this is the elevated copy ElevateForAllUsers started, so Welcome,
+  ; License and the scope page were shown by the first copy. Only for that case: interactive,
+  ; and for everyone.
+  StrCpy $Resume ""
+  ClearErrors
+  ${GetOptions} $R0 "/RESUME" $R1
+  ${IfNot} ${Errors}
+  ${AndIfNot} ${Silent}
+  ${AndIf} $MultiUser.InstallMode == "AllUsers"
+    StrCpy $Resume "1"
+  ${EndIf}
 !ifndef FULL_ONLY
   ; /NORUNTIME - never provision the .NET runtime (the updater passes it: the runtime it is
   ; running on is still there).
@@ -654,7 +694,7 @@ Function ElevateForAllUsers
 
   ; The elevated instance really is an admin, so it never comes back through here.
   ClearErrors
-  ExecShell "runas" "$EXEPATH" "/AllUsers"
+  ExecShell "runas" "$EXEPATH" "/AllUsers /RESUME"
   ${IfNot} ${Errors}
     Quit                          ; the elevated copy takes over
   ${EndIf}

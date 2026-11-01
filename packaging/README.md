@@ -38,6 +38,7 @@ What ships is built by the `release` job in `../.github/workflows/ci.yml`.
 | `/RESTART` | After a silent install, start DisplayRotate again through `explorer.exe`, so it runs as the desktop user rather than elevated. |
 | `/NORUNTIME` | Never provision the .NET runtime. In `-min`, a silent install with the runtime missing exits 3 before touching anything. |
 | `/D=<dir>` | Install folder (NSIS standard, must be last). |
+| `/RESUME` | Internal. The elevated copy that picking *anyone who uses this computer* starts gets it: Welcome, the licence and the scope page skip themselves there, and it opens on the next step (the build choice, or Components in a single-build installer) with Back disabled, instead of starting over after the UAC prompt. |
 
 Exit codes: `2` means a silent `/AllUsers` without administrator rights; `3` is described above.
 

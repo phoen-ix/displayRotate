@@ -65,6 +65,28 @@ public partial class InstallerContractTests
         Assert.All(passed, argument => Assert.Contains(argument, read));
     }
 
+    /// <summary>
+    /// Picking "anyone who uses this computer" starts an elevated copy of the installer. That copy
+    /// continues at the step after the scope page instead of greeting the user again: the relaunch
+    /// says so with /RESUME, .onInit reads it, and the three pages the first copy showed skip
+    /// themselves.
+    /// </summary>
+    [Fact]
+    public void TheElevatedCopyContinuesWhereTheFirstOneStopped()
+    {
+        var nsi = Nsi();
+        Assert.Contains(@"ExecShell ""runas"" ""$EXEPATH"" ""/AllUsers /RESUME""", nsi);
+        Assert.Matches(@"\$\{GetOptions\}\s+\$R0\s+""/RESUME""", nsi);
+        foreach (var page in new[] { "!insertmacro MUI_PAGE_WELCOME", "!insertmacro MUI_PAGE_LICENSE", "!insertmacro MULTIUSER_PAGE_INSTALLMODE" })
+        {
+            var at = nsi.IndexOf(page, StringComparison.Ordinal);
+            Assert.True(at >= 0, page);
+            var before = nsi[..at].Split('\n').Reverse().Take(4);
+            Assert.True(before.Any(line => line.Contains("PRE SkipIfResumed")), $"{page} is not skipped in the elevated copy");
+        }
+        Assert.Contains("MUI_PAGE_CUSTOMFUNCTION_SHOW FirstPageAfterResume", nsi);
+    }
+
     [Fact]
     public void EverySilentInstallHasADefault()
     {
