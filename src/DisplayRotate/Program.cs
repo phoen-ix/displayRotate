@@ -2,10 +2,10 @@ using DisplayRotate.Core;
 
 namespace DisplayRotate;
 
-static class Program
+internal static class Program
 {
     [STAThread]
-    static void Main(string[] args)
+    private static void Main(string[] args)
     {
         if (args.Length > 0)
         {
@@ -16,14 +16,19 @@ static class Program
         // Hide the console window in tray mode
         var consoleWindow = NativeMethods.GetConsoleWindow();
         if (consoleWindow != IntPtr.Zero)
+        {
             NativeMethods.ShowWindow(consoleWindow, NativeMethods.SW_HIDE);
+        }
+
         NativeMethods.FreeConsole();
 
         // One tray instance at a time. The installer also watches this mutex: it is how it
         // knows whether DisplayRotate is running, and when an instance it asked to quit is gone.
         using var single = new Mutex(true, Names.SingleInstanceMutex, out var createdNew);
         if (!createdNew)
+        {
             return;
+        }
 
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayApp());

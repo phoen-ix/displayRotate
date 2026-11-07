@@ -88,8 +88,13 @@ internal sealed class SettingsForm : Form
         {
             var shift = _chkAutoRestore.Checked ? orientationsSpace : -orientationsSpace;
             foreach (Control c in mainPanel.Controls)
+            {
                 if (c != _orientationsPanel && c.Top >= _orientationsPanel.Top)
+                {
                     c.Top += shift;
+                }
+            }
+
             Height += shift;
             _orientationsPanel.Visible = _chkAutoRestore.Checked;
         };
@@ -167,11 +172,20 @@ internal sealed class SettingsForm : Form
     private string InitialUpdateStatus()
     {
         if (_updater.Engine.DisabledByPolicy)
+        {
             return "Update checks are disabled by policy on this computer.";
+        }
+
         if (_updater.Installing)
+        {
             return "Installing… DisplayRotate closes while the files are replaced, and starts again at the new version.";
+        }
+
         if (_updater.Last is { } last)
+        {
             return Updater.Describe(last);
+        }
+
         return _settings.LastUpdateCheckUtc is { } stamp
             ? $"Last checked {stamp.ToLocalTime():yyyy-MM-dd HH:mm}."
             : "Never checked.";
@@ -180,7 +194,9 @@ internal sealed class SettingsForm : Form
     private void RefreshUpdateControls()
     {
         if (IsDisposed)
+        {
             return;
+        }
 
         var idle = !_updater.Busy && !_updater.Installing;
         _btnCheckNow.Enabled = idle && !_updater.Engine.DisabledByPolicy;
@@ -194,7 +210,9 @@ internal sealed class SettingsForm : Form
 
             // The shield says "this asks for administrator rights" before anyone presses it.
             if (_install.Scope == InstallScope.PerMachine && !Environment.IsPrivilegedProcess)
+            {
                 SendMessage(_btnUpdate.Handle, BCM_SETSHIELD, IntPtr.Zero, 1);
+            }
         }
         else
         {
@@ -207,7 +225,9 @@ internal sealed class SettingsForm : Form
         _lblUpdateStatus.Text = "Checking…";
         var result = await _updater.CheckAsync();
         if (result is not null && !IsDisposed)
+        {
             _lblUpdateStatus.Text = Updater.Describe(result);
+        }
     }
 
     private async Task OnUpdateAsync()
@@ -226,18 +246,24 @@ internal sealed class SettingsForm : Form
         {
             var text = Updater.Progress(done, total);
             if (text != Interlocked.Exchange(ref shown, text) && IsHandleCreated)
-                BeginInvoke(() => { if (_updater.Busy) _lblUpdateStatus.Text = text; });
+            {
+                BeginInvoke(() => { if (_updater.Busy) { _lblUpdateStatus.Text = text; } });
+            }
         });
 
         if (result is null || IsDisposed)
+        {
             return;
+        }
 
         _lblUpdateStatus.Text = result.Message;
 
         // No dialog while installing: the installer is about to close this window along with
         // the app, and gives it only seconds to go.
         if (result.Outcome is ApplyOutcome.Failed or ApplyOutcome.DisabledByPolicy)
+        {
             MessageBox.Show(this, result.Message, "DisplayRotate update", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
     }
 
     private void BuildOrientationsPanel()
@@ -274,7 +300,9 @@ internal sealed class SettingsForm : Form
         _hotkeysPanel.Controls.Clear();
         _hotkeyRows.Clear();
         foreach (var binding in _hotkeys)
+        {
             AddHotkeyRow(binding);
+        }
     }
 
     private void AddHotkeyRow(HotkeyBinding binding)
@@ -302,11 +330,17 @@ internal sealed class SettingsForm : Form
     private void OnRemoveHotkey(object? sender, EventArgs e)
     {
         var selected = _selectedRow is null ? -1 : _hotkeyRows.IndexOf(_selectedRow);
-        if (selected < 0) return;
+        if (selected < 0)
+        {
+            return;
+        }
 
         // The rebuild below drops the rows' controls; keep their edits (only the copies).
         foreach (var row in _hotkeyRows)
+        {
             row.ApplyToBinding();
+        }
+
         _hotkeys.RemoveAt(selected);
         BuildHotkeyRows();
     }
@@ -329,10 +363,15 @@ internal sealed class SettingsForm : Form
 
         _settings.PreferredOrientations.Clear();
         foreach (var (deviceName, combo) in _orientationCombos)
+        {
             _settings.PreferredOrientations[deviceName] = combo.SelectedIndex;
+        }
 
         foreach (var row in _hotkeyRows)
+        {
             row.ApplyToBinding();
+        }
+
         _settings.Hotkeys = _hotkeys;
 
         _settings.Save();
@@ -370,7 +409,10 @@ internal sealed class SettingsForm : Form
             _cmbDisplay.Items.Add("Primary");
             var displays = DisplayManager.GetDisplays();
             foreach (var d in displays)
+            {
                 _cmbDisplay.Items.Add($"Display {d.Index}");
+            }
+
             _cmbDisplay.SelectedIndex = Math.Min(binding.TargetDisplayIndex, _cmbDisplay.Items.Count - 1);
             parent.Controls.Add(_cmbDisplay);
 
@@ -397,7 +439,9 @@ internal sealed class SettingsForm : Form
             parent.Controls.Add(_txtHotkey);
 
             foreach (var control in new Control[] { _chkEnabled, _cmbDisplay, _cmbOrientation, _txtHotkey })
+            {
                 control.Enter += (_, _) => Entered?.Invoke();
+            }
         }
 
         private void OnHotkeyKeyDown(object? sender, KeyEventArgs e)
@@ -406,7 +450,9 @@ internal sealed class SettingsForm : Form
             e.SuppressKeyPress = true;
 
             if (e.KeyCode is Keys.ControlKey or Keys.ShiftKey or Keys.Menu or Keys.LWin or Keys.RWin)
+            {
                 return;
+            }
 
             if (e.KeyCode == Keys.Escape)
             {
@@ -425,12 +471,25 @@ internal sealed class SettingsForm : Form
             }
 
             if (!e.Control && !e.Alt && !e.Shift)
+            {
                 return;
+            }
 
             uint mods = 0;
-            if (e.Control) mods |= MOD_CONTROL;
-            if (e.Alt) mods |= MOD_ALT;
-            if (e.Shift) mods |= MOD_SHIFT;
+            if (e.Control)
+            {
+                mods |= MOD_CONTROL;
+            }
+
+            if (e.Alt)
+            {
+                mods |= MOD_ALT;
+            }
+
+            if (e.Shift)
+            {
+                mods |= MOD_SHIFT;
+            }
 
             _modifiers = mods;
             _virtualKey = (uint)e.KeyCode;

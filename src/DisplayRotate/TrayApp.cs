@@ -62,7 +62,9 @@ internal sealed class TrayApp : ApplicationContext
 
         // Re-point the autostart entry at this exe, in case it moved since it was written.
         if (_settings.StartWithWindows)
+        {
             _settings.ApplyStartWithWindows();
+        }
 
         UpdateEngine.SweepOldDownloads(Path.GetTempPath(), DateTime.UtcNow);
 
@@ -121,7 +123,10 @@ internal sealed class TrayApp : ApplicationContext
     private void ExitApp()
     {
         if (_exiting)
+        {
             return;
+        }
+
         _exiting = true;
         _updateTimer.Stop();
         _trayIcon.Visible = false;
@@ -132,7 +137,9 @@ internal sealed class TrayApp : ApplicationContext
     {
         if (_exiting || !_settings.DailyUpdateCheck
             || !UpdateSchedule.IsCheckDue(_settings.LastUpdateCheckUtc, DateTimeOffset.UtcNow))
+        {
             return;
+        }
 
         UpdateCheck? result;
         try
@@ -159,7 +166,9 @@ internal sealed class TrayApp : ApplicationContext
     {
         var result = await _updater.CheckAsync();
         if (result is null || _exiting)
+        {
             return;
+        }
 
         ShowBalloon(
             "Updates",
@@ -171,7 +180,9 @@ internal sealed class TrayApp : ApplicationContext
     private async Task InstallUpdateAsync()
     {
         if (_updater.Available is not { } latest || _updater.Busy || _updater.Installing)
+        {
             return;
+        }
 
         var install = Updater.DetectInstall();
         if (install.Scope == InstallScope.Portable)
@@ -179,7 +190,10 @@ internal sealed class TrayApp : ApplicationContext
             if (MessageBox.Show(
                     $"DisplayRotate {latest.ToString(3)} is available.\n\nThis copy was not installed, so it can't update itself. Open the download page?",
                     "DisplayRotate", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
+            {
                 Updater.OpenReleasePage();
+            }
+
             return;
         }
 
@@ -187,7 +201,9 @@ internal sealed class TrayApp : ApplicationContext
                      "DisplayRotate closes while the files are replaced, and starts again at the new version." +
                      (install.Scope == InstallScope.PerMachine ? "\n\nIt is installed for everyone on this computer, so Windows will ask for administrator rights." : "");
         if (MessageBox.Show(prompt, "DisplayRotate", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        {
             return;
+        }
 
         // Progress arrives on the download's thread, once per 64 KB: post only when the text changes.
         var shown = "";
@@ -195,11 +211,16 @@ internal sealed class TrayApp : ApplicationContext
         {
             var text = Updater.Progress(done, total);
             if (text == Interlocked.Exchange(ref shown, text))
+            {
                 return;
-            _ui.Post(_ => { if (_updater.Busy) _trayIcon.Text = text; }, null);
+            }
+
+            _ui.Post(_ => { if (_updater.Busy) { _trayIcon.Text = text; } }, null);
         });
         if (result is null || _exiting)
+        {
             return;
+        }
 
         switch (result.Outcome)
         {
@@ -309,7 +330,11 @@ internal sealed class TrayApp : ApplicationContext
         foreach (var display in displays)
         {
             string label = $"Display {display.Index}: {display.FriendlyName}";
-            if (display.IsPrimary) label += " (Primary)";
+            if (display.IsPrimary)
+            {
+                label += " (Primary)";
+            }
+
             label += $" [{display.Width}x{display.Height}]";
 
             var displayItem = new ToolStripMenuItem(label) { Enabled = false };
@@ -335,7 +360,10 @@ internal sealed class TrayApp : ApplicationContext
                 {
                     var (success, message) = DisplayManager.Rotate(deviceName, orientation);
                     if (!success)
+                    {
                         MessageBox.Show(message, "DisplayRotate", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+
                     _trayIcon.ContextMenuStrip = BuildMenu();
                 };
                 menu.Items.Add(item);
@@ -387,7 +415,9 @@ internal sealed class TrayApp : ApplicationContext
 
         // The installer's quit request closes this dialog too; don't come back to life after it.
         if (_exiting)
+        {
             return;
+        }
 
         if (result == DialogResult.OK)
         {
@@ -416,7 +446,7 @@ internal sealed class TrayApp : ApplicationContext
     private sealed class HotkeyWindow : NativeWindow, IDisposable
     {
         private readonly Dictionary<int, HotkeyBinding> _idToBinding = new();
-        private int _registeredCount;
+        private readonly int _registeredCount;
 
         public List<HotkeyBinding> FailedBindings { get; } = new();
 
@@ -428,7 +458,9 @@ internal sealed class TrayApp : ApplicationContext
             foreach (var binding in hotkeys)
             {
                 if (!binding.IsEnabled || binding.VirtualKey == 0)
+                {
                     continue;
+                }
 
                 uint mods = binding.Modifiers | MOD_NOREPEAT;
                 if (RegisterHotKey(Handle, id, mods, binding.VirtualKey))
@@ -450,12 +482,18 @@ internal sealed class TrayApp : ApplicationContext
             {
                 string? deviceName;
                 if (binding.TargetDisplayIndex == 0)
+                {
                     deviceName = DisplayManager.GetDisplays().FirstOrDefault(d => d.IsPrimary)?.DeviceName;
+                }
                 else
+                {
                     deviceName = DisplayManager.GetDisplays().FirstOrDefault(d => d.Index == binding.TargetDisplayIndex)?.DeviceName;
+                }
 
                 if (deviceName != null)
+                {
                     DisplayManager.Rotate(deviceName, binding.TargetOrientation);
+                }
             }
             base.WndProc(ref m);
         }
@@ -463,7 +501,10 @@ internal sealed class TrayApp : ApplicationContext
         public void Dispose()
         {
             for (int i = 1; i <= _registeredCount; i++)
+            {
                 UnregisterHotKey(Handle, i);
+            }
+
             DestroyHandle();
         }
     }

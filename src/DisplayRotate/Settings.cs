@@ -20,11 +20,27 @@ public class HotkeyBinding
 
     public string FormatHotkey()
     {
-        if (VirtualKey == 0) return "(None)";
+        if (VirtualKey == 0)
+        {
+            return "(None)";
+        }
+
         var parts = new List<string>();
-        if ((Modifiers & MOD_CONTROL) != 0) parts.Add("Ctrl");
-        if ((Modifiers & MOD_ALT) != 0) parts.Add("Alt");
-        if ((Modifiers & MOD_SHIFT) != 0) parts.Add("Shift");
+        if ((Modifiers & MOD_CONTROL) != 0)
+        {
+            parts.Add("Ctrl");
+        }
+
+        if ((Modifiers & MOD_ALT) != 0)
+        {
+            parts.Add("Alt");
+        }
+
+        if ((Modifiers & MOD_SHIFT) != 0)
+        {
+            parts.Add("Shift");
+        }
+
         parts.Add(KeyName(VirtualKey));
         return string.Join("+", parts);
     }
@@ -85,7 +101,9 @@ public class AppSettings
     {
         var path = GetSettingsPath();
         if (!File.Exists(path))
+        {
             return CreateDefault();
+        }
 
         try
         {
@@ -146,25 +164,36 @@ public class AppSettings
     public void ApplyStartWithWindows()
     {
         using var key = Registry.CurrentUser.OpenSubKey(Names.RunKey, writable: true);
-        if (key == null) return;
+        if (key == null)
+        {
+            return;
+        }
 
         if (StartWithWindows)
+        {
             key.SetValue(Names.RunValue, $"\"{Application.ExecutablePath}\"");
+        }
         else
+        {
             key.DeleteValue(Names.RunValue, throwOnMissingValue: false);
+        }
     }
 
     public void RestoreOrientations()
     {
         if (!AutoRestoreOrientations || PreferredOrientations.Count == 0)
+        {
             return;
+        }
 
         var displays = DisplayManager.GetDisplays();
         foreach (var (deviceName, orientation) in PreferredOrientations)
         {
             var display = displays.FirstOrDefault(d => d.DeviceName == deviceName);
             if (display != null && display.CurrentOrientation != orientation)
+            {
                 DisplayManager.Rotate(deviceName, orientation);
+            }
         }
     }
 }

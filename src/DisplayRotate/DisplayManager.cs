@@ -28,7 +28,9 @@ internal static class DisplayManager
             index++;
 
             if ((dd.StateFlags & DISPLAY_DEVICE_ACTIVE) == 0)
+            {
                 continue;
+            }
 
             bool isPrimary = (dd.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) != 0;
             string deviceName = dd.DeviceName;
@@ -38,13 +40,17 @@ internal static class DisplayManager
             monitor.cb = Marshal.SizeOf<DISPLAY_DEVICE>();
             string friendlyName = dd.DeviceString;
             if (EnumDisplayDevices(deviceName, 0, ref monitor, 0))
+            {
                 friendlyName = monitor.DeviceString;
+            }
 
             // Get current display settings
             var dm = new DEVMODE();
             dm.dmSize = (short)Marshal.SizeOf<DEVMODE>();
             if (!EnumDisplaySettingsEx(deviceName, ENUM_CURRENT_SETTINGS, ref dm, 0))
+            {
                 continue;
+            }
 
             displays.Add(new DisplayInfo(
                 displayNum++,
@@ -66,19 +72,25 @@ internal static class DisplayManager
         dm.dmSize = (short)Marshal.SizeOf<DEVMODE>();
 
         if (!EnumDisplaySettingsEx(deviceName, ENUM_CURRENT_SETTINGS, ref dm, 0))
+        {
             return (false, "Failed to get current display settings.");
+        }
 
         int currentOrientation = dm.dmDisplayOrientation;
 
         if (currentOrientation == targetOrientation)
+        {
             return (true, $"Display is already at {GetOrientationName(targetOrientation)}.");
+        }
 
         // Swap width/height when crossing between landscape and portrait
         bool currentIsPortrait = currentOrientation is DMDO_90 or DMDO_270;
         bool targetIsPortrait = targetOrientation is DMDO_90 or DMDO_270;
 
         if (currentIsPortrait != targetIsPortrait)
+        {
             (dm.dmPelsWidth, dm.dmPelsHeight) = (dm.dmPelsHeight, dm.dmPelsWidth);
+        }
 
         dm.dmDisplayOrientation = targetOrientation;
         dm.dmFields = DM_DISPLAYORIENTATION | DM_PELSWIDTH | DM_PELSHEIGHT;
@@ -86,7 +98,9 @@ internal static class DisplayManager
         // Test if mode is valid
         int testResult = ChangeDisplaySettingsEx(deviceName, ref dm, IntPtr.Zero, CDS_TEST, IntPtr.Zero);
         if (testResult != DISP_CHANGE_SUCCESSFUL)
+        {
             return (false, $"Display does not support {GetOrientationName(targetOrientation)} (error: {testResult}).");
+        }
 
         // Apply the change
         int result = ChangeDisplaySettingsEx(deviceName, ref dm, IntPtr.Zero, CDS_UPDATEREGISTRY, IntPtr.Zero);

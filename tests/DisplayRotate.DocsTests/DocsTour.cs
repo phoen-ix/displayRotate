@@ -222,7 +222,8 @@ public class DocsTour
             {
                 failure = e;
             }
-        }) { IsBackground = true };
+        })
+        { IsBackground = true };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         if (!thread.Join(TimeSpan.FromSeconds(90)))

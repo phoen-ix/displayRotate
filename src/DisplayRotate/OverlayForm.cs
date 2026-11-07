@@ -40,7 +40,10 @@ internal sealed class OverlayForm : Form
     protected override void Dispose(bool disposing)
     {
         if (disposing)
+        {
             _timer.Dispose();
+        }
+
         base.Dispose(disposing);
     }
 
@@ -50,7 +53,11 @@ internal sealed class OverlayForm : Form
         foreach (var display in displays)
         {
             var screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == display.DeviceName);
-            if (screen == null) continue;
+            if (screen == null)
+            {
+                continue;
+            }
+
             new OverlayForm(display.Index, screen, durationMs).Show();
         }
     }
@@ -58,7 +65,11 @@ internal sealed class OverlayForm : Form
     public static void ShowIdentifyOverlay(int displayIndex, string deviceName, int durationMs)
     {
         var screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName == deviceName);
-        if (screen == null) return;
+        if (screen == null)
+        {
+            return;
+        }
+
         new OverlayForm(displayIndex, screen, durationMs).Show();
     }
 }
