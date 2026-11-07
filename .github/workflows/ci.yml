@@ -86,7 +86,7 @@ jobs:
         with:
           global-json-file: global.json
 
-      # EnableWindowsTargeting (Directory.Build.props) lets the WinForms app build here; the
+      # EnableWindowsTargeting (Directory.Build.Common.props) lets the WinForms app build here; the
       # tests reference DisplayRotate.Core only, so they run here too.
       - name: Build
         run: dotnet build DisplayRotate.slnx -c Release
