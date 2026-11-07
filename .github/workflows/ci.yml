@@ -44,6 +44,9 @@ jobs:
       - name: Test
         run: dotnet test --solution DisplayRotate.slnx -c Release --no-build
 
+      - name: Format check
+        run: dotnet format DisplayRotate.slnx --verify-no-changes --severity warn
+
       # The docs tour as a render check: every screenshot still builds. The PNGs stay in the
       # runner's temp folder; the ones to commit come from docs-screenshots.yml.
       - name: Docs screenshots (render check)
