@@ -30,7 +30,7 @@ internal sealed class OverlayForm : Form
     {
         base.OnPaint(e);
         using var font = new Font("Segoe UI", Math.Min(ClientSize.Width, ClientSize.Height) * 0.4f, FontStyle.Bold);
-        var text = _displayNumber.ToString();
+        var text = _displayNumber.ToString(System.Globalization.CultureInfo.CurrentCulture);
         var size = e.Graphics.MeasureString(text, font);
         float x = (ClientSize.Width - size.Width) / 2;
         float y = (ClientSize.Height - size.Height) / 2;

@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
 using DisplayRotate.Core;
 using DisplayRotate.Core.Updates;
 using Microsoft.Win32;
@@ -156,9 +155,8 @@ internal static class Harness
             var box = IntPtr.Zero;
             EnumThreadWindows(GetCurrentThreadId(), (window, _) =>
             {
-                var name = new StringBuilder(16);
-                GetClassName(window, name, name.Capacity);
-                if (name.ToString() != "#32770" || !IsWindowVisible(window))
+                var name = new char[16];
+                if (new string(name, 0, GetClassName(window, name, name.Length)) != "#32770" || !IsWindowVisible(window))
                 {
                     return true;
                 }
@@ -172,9 +170,8 @@ internal static class Harness
             }
 
             timer.Stop();
-            var label = new StringBuilder(1024);
-            GetWindowText(GetDlgItem(box, 0xFFFF), label, label.Capacity);
-            text = label.ToString();
+            var label = new char[1024];
+            text = new string(label, 0, GetWindowText(GetDlgItem(box, 0xFFFF), label, label.Length));
             PostMessage(box, WM_COMMAND, (nint)answer, IntPtr.Zero);
         };
         timer.Start();
@@ -202,10 +199,10 @@ internal static class Harness
     private static extern uint GetCurrentThreadId();
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
+    private static extern int GetClassName(IntPtr window, [Out] char[] name, int size);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int GetWindowText(IntPtr window, StringBuilder text, int size);
+    private static extern int GetWindowText(IntPtr window, [Out] char[] text, int size);
 
     [DllImport("user32.dll")]
     private static extern bool IsWindowVisible(IntPtr window);

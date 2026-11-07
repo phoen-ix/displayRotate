@@ -286,7 +286,7 @@ public class SettingsJourneys
 
             Find<Button>(form, "Check now").PerformClick();
 
-            var expected = string.Format(status, ProductInfo.Version, latest == "newer" ? Newer.ToString(3) : "");
+            var expected = string.Format(System.Globalization.CultureInfo.InvariantCulture, status, ProductInfo.Version, latest == "newer" ? Newer.ToString(3) : "");
             Until(() => Controls(form).Any(c => c is Label { Text: var t } && t == expected), $"the status line to read '{expected}'");
             Assert.Equal(button, UpdateButton(form)?.Text);
             Assert.NotNull(UserState.Saved.LastUpdateCheckUtc);

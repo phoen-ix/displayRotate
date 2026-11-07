@@ -199,7 +199,7 @@ public class TrayJourneys
             Until(() => !tray.Updater.Busy, "the check");
 
             Assert.Equal("Updates", tray.Icon.BalloonTipTitle);
-            Assert.Equal(string.Format(text, ProductInfo.Version, latest == "newer" ? Newer.ToString(3) : ""), tray.Icon.BalloonTipText);
+            Assert.Equal(string.Format(System.Globalization.CultureInfo.InvariantCulture, text, ProductInfo.Version, latest == "newer" ? Newer.ToString(3) : ""), tray.Icon.BalloonTipText);
             Assert.Equal(icon, tray.Icon.BalloonTipIcon);
             Assert.NotNull(UserState.Saved.LastUpdateCheckUtc);
 

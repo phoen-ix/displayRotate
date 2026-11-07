@@ -297,7 +297,11 @@ internal sealed class SettingsForm : Form
 
     private void BuildHotkeyRows()
     {
-        _hotkeysPanel.Controls.Clear();
+        foreach (var row in _hotkeyRows)
+        {
+            row.Dispose();
+        }
+
         _hotkeyRows.Clear();
         foreach (var binding in _hotkeys)
         {
@@ -378,12 +382,7 @@ internal sealed class SettingsForm : Form
         _settings.ApplyStartWithWindows();
     }
 
-    private void LayoutForm()
-    {
-        // Let the panel auto-scroll handle repositioning
-    }
-
-    private sealed class HotkeyRow
+    private sealed class HotkeyRow : IDisposable
     {
         private readonly HotkeyBinding _binding;
         private readonly CheckBox _chkEnabled;
@@ -442,6 +441,15 @@ internal sealed class SettingsForm : Form
             {
                 control.Enter += (_, _) => Entered?.Invoke();
             }
+        }
+
+        /// <summary>Also takes the controls out of the panel.</summary>
+        public void Dispose()
+        {
+            _chkEnabled.Dispose();
+            _cmbDisplay.Dispose();
+            _cmbOrientation.Dispose();
+            _txtHotkey.Dispose();
         }
 
         private void OnHotkeyKeyDown(object? sender, KeyEventArgs e)
@@ -510,7 +518,7 @@ internal sealed class SettingsForm : Form
             string displayLabel = _cmbDisplay.SelectedIndex == 0 ? "Primary" : $"Display {_cmbDisplay.SelectedIndex}";
             string orientLabel = DisplayManager.GetOrientationName(_cmbOrientation.SelectedIndex);
             _binding.DisplayName = $"Rotate {displayLabel} to {orientLabel}";
-            _binding.ActionId = $"rotate_{displayLabel.ToLower().Replace(" ", "")}_{_cmbOrientation.SelectedIndex}";
+            _binding.ActionId = $"rotate_{displayLabel.ToLowerInvariant().Replace(" ", "")}_{_cmbOrientation.SelectedIndex}";
         }
     }
 }
