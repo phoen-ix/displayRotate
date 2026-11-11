@@ -93,3 +93,9 @@ DisplayRotate uses the system proxy settings, like any .NET app.
 | The download did not match the release's checksum | Something altered the download in transit, or it was cut short. It was deleted; try again. |
 | The administrator prompt was declined | A per-machine install needs administrator rights to update. Nothing was changed. |
 | This copy was not installed | A portable copy. Download the new zip from the release page. |
+
+A minimal build updating from v0.1.6 or earlier: DisplayRotate now needs the .NET 11 Desktop
+Runtime instead of .NET 10. The in-app update passes `/NORUNTIME`, so the installer refuses
+while the runtime is missing, and the old version keeps working. Install the runtime
+(`winget install Microsoft.DotNet.DesktopRuntime.11`), or run the new installer by hand, which
+offers to fetch it.

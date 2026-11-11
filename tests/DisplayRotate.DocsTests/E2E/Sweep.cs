@@ -39,7 +39,7 @@ public class Sweep
                         using var tray = new Tray();
                         if (window.EndsWith("available", StringComparison.Ordinal))
                         {
-                            tray.Releases.Latest = Newer;
+                            tray.Releases.Latest = Newer();
                             tray.Item("Check for updates").PerformClick();
                             tray.ClickIcon(MouseButtons.Right);
                         }
@@ -65,7 +65,7 @@ public class Sweep
                     {
                         var settings = AppSettings.CreateDefault();
                         settings.AutoRestoreOrientations = window.EndsWith("auto-restore on", StringComparison.Ordinal);
-                        var releases = new FakeReleases { Latest = Newer };
+                        var releases = new FakeReleases { Latest = Newer() };
                         var updater = Updater(releases, disabledByPolicy: window.EndsWith("policy", StringComparison.Ordinal));
                         if (window.EndsWith("available", StringComparison.Ordinal))
                         {

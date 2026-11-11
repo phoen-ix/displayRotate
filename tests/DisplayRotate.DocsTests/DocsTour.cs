@@ -42,7 +42,7 @@ public class DocsTour
     public void TrayMenuWithAnUpdate() => OnSta(() =>
     {
         using var menu = BuildTrayMenu(UpdaterWithNewerRelease());
-        Assert.Equal($"Install DisplayRotate {NewerRelease.ToString(3)}…", menu.Items[0].Text);
+        Assert.Equal($"Install DisplayRotate {NewerRelease().ToString(3)}…", menu.Items[0].Text);
         Save(Menu(menu), "tray-menu-update");
     });
 
@@ -80,7 +80,7 @@ public class DocsTour
         typeof(SettingsForm).GetMethod("RefreshUpdateControls", Private)!.Invoke(form, null);
 
         Show(form);
-        Assert.Contains(Controls(form), c => c is Button { Visible: true } b && b.Text == $"Update to {NewerRelease.ToString(3)}");
+        Assert.Contains(Controls(form), c => c is Button { Visible: true } b && b.Text == $"Update to {NewerRelease().ToString(3)}");
         Save(Window(form), "settings-update");
     });
 
@@ -94,20 +94,17 @@ public class DocsTour
         Save(Draw(overlay, overlay.ClientSize), "identify-overlay");
     });
 
-    private static Version NewerRelease
+    private static Version NewerRelease()
     {
-        get
-        {
-            var current = Version.Parse(ProductInfo.Version);
-            return new Version(current.Major, current.Minor + 1, 0);
-        }
+        var current = Version.Parse(ProductInfo.Version);
+        return new Version(current.Major, current.Minor + 1, 0);
     }
 
     private static Updater UpdaterWithNewerRelease()
     {
         var updater = new Updater(AppSettings.CreateDefault);
         typeof(Updater).GetProperty(nameof(Updater.Last))!
-            .SetValue(updater, new UpdateCheck(CheckOutcome.Available, ProductInfo.Version, NewerRelease));
+            .SetValue(updater, new UpdateCheck(CheckOutcome.Available, ProductInfo.Version, NewerRelease()));
         return updater;
     }
 

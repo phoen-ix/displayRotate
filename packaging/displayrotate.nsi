@@ -6,7 +6,7 @@
 ;
 ; Standard carries BOTH builds and asks which to install; -full carries only the self-contained
 ; build (runtime bundled, needs nothing); -min carries only the framework-dependent build (needs
-; the .NET 10 Desktop Runtime, which it offers to fetch through winget). The in-app updater always
+; the .NET 11 Desktop Runtime, which it offers to fetch through winget). The in-app updater always
 ; fetches -full or -min, whichever matches the BuildVariant this script records.
 ;
 ; Run from THIS folder with the published exes staged next to it (build.bat / build.sh, or CI):
@@ -33,7 +33,7 @@ SetCompressor /SOLID lzma
 !define ICON_SRC "..\src\DisplayRotate\app.ico"
 !define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP}"
 !define RUN_KEY "Software\Microsoft\Windows\CurrentVersion\Run"
-!define DOTNET_URL "https://dotnet.microsoft.com/download/dotnet/10.0"
+!define DOTNET_URL "https://dotnet.microsoft.com/download/dotnet/11.0"
 ; Both names are hard-coded in the app too (src/DisplayRotate.Core/Names.cs), and a test pins
 ; the two files together: renaming one alone fails silently.
 !define MUTEX_NAME "Local\DisplayRotate-single-instance-4d9e21"
@@ -164,11 +164,11 @@ Function BuildPageCreate
   !insertmacro MUI_HEADER_TEXT "Choose build" "Pick which DisplayRotate build to install."
   nsDialogs::Create 1018
   Pop $0
-  ${NSD_CreateLabel} 0 0 100% 34u "DisplayRotate ships as two builds. The full build bundles the .NET runtime and needs nothing installed. The minimal build is tiny but requires the .NET 10 Desktop Runtime (x64)."
+  ${NSD_CreateLabel} 0 0 100% 34u "DisplayRotate ships as two builds. The full build bundles the .NET runtime and needs nothing installed. The minimal build is tiny but requires the .NET 11 Desktop Runtime (x64)."
   Pop $0
   ${NSD_CreateRadioButton} 0 40u 100% 12u "Full - runtime bundled. Just works, nothing else to install."
   Pop $RbFull
-  ${NSD_CreateRadioButton} 0 56u 100% 12u "Minimal - tiny. Needs the .NET 10 Desktop Runtime (installed via winget if missing)."
+  ${NSD_CreateRadioButton} 0 56u 100% 12u "Minimal - tiny. Needs the .NET 11 Desktop Runtime (installed via winget if missing)."
   Pop $RbMin
   ${If} $BuildChoice == "min"
     ${NSD_Check} $RbMin
@@ -235,7 +235,7 @@ Function LaunchApp
   Exec '"$WINDIR\explorer.exe" "$INSTDIR\${EXE}"'
 FunctionEnd
 
-; ---- ensure .NET 10 Desktop Runtime for the minimal build ----
+; ---- ensure .NET 11 Desktop Runtime for the minimal build ----
 ; Skipped entirely in a FULL_ONLY build: nothing there can call these, and makensis -WX
 ; treats an unreferenced function as an error.
 !ifndef FULL_ONLY
@@ -255,13 +255,13 @@ Function DotnetPresent
   ${If} $0 == ""
     StrCpy $0 "$PROGRAMFILES64\dotnet"   ; nothing recorded - fall back to the usual spot
   ${EndIf}
-  ; Exactly 10.*, not "10 or later": the app's default roll-forward policy is Minor, so an
-  ; 11.x runtime alone would not start it.
-  FindFirst $1 $2 "$0\shared\Microsoft.WindowsDesktop.App\10.*"
+  ; Exactly 11.*, not "11 or later": the app's default roll-forward policy is Minor, so an
+  ; 12.x runtime alone would not start it.
+  FindFirst $1 $2 "$0\shared\Microsoft.WindowsDesktop.App\11.*"
   FindClose $1
   ${If} $2 != ""
     StrCpy $DotnetFound "1"
-    DetailPrint ".NET 10 Desktop Runtime found ($2 in $0)."
+    DetailPrint ".NET 11 Desktop Runtime found ($2 in $0)."
   ${EndIf}
   Pop $2
   Pop $1
@@ -273,15 +273,15 @@ Function EnsureDotnet
   ${If} $DotnetFound == "1"
     Return
   ${EndIf}
-  DetailPrint ".NET 10 Desktop Runtime (x64) not found."
+  DetailPrint ".NET 11 Desktop Runtime (x64) not found."
   ${If} $NoRuntime == "1"
     DetailPrint "Skipping the runtime download (/NORUNTIME)."
     Call DotnetManual
     Return
   ${EndIf}
-  ; Ask first: it is a machine-wide install of about 57 MB that nobody chose yet. /SD IDYES so
+  ; Ask first: it is a machine-wide install of about 59 MB that nobody chose yet. /SD IDYES so
   ; a scripted /S deploy still provisions the runtime without a prompt.
-  MessageBox MB_YESNO|MB_ICONQUESTION|MB_TOPMOST|MB_SETFOREGROUND "The minimal DisplayRotate build needs the .NET 10 Desktop Runtime (x64), which isn't installed on this PC.$\n$\nDownload and install it now? That's about 57 MB, fetched and installed machine-wide by winget.$\n$\nChoose No to handle it yourself - DisplayRotate won't start until the runtime is present." /SD IDYES IDNO dn_manual
+  MessageBox MB_YESNO|MB_ICONQUESTION|MB_TOPMOST|MB_SETFOREGROUND "The minimal DisplayRotate build needs the .NET 11 Desktop Runtime (x64), which isn't installed on this PC.$\n$\nDownload and install it now? That's about 59 MB, fetched and installed machine-wide by winget.$\n$\nChoose No to handle it yourself - DisplayRotate won't start until the runtime is present." /SD IDYES IDNO dn_manual
   ; Resolve winget's real path via System32's where.exe - both fully qualified so a planted
   ; where.exe / winget.exe in the (possibly elevated) installer's folder can't run.
   nsExec::ExecToStack '"$SYSDIR\where.exe" winget'
@@ -298,8 +298,8 @@ Function EnsureDotnet
     Call DotnetManual
     Return
   ${EndIf}
-  DetailPrint "Installing .NET 10 Desktop Runtime via winget..."
-  nsExec::ExecToLog '"$3" install --id Microsoft.DotNet.DesktopRuntime.10 -e --silent --accept-package-agreements --accept-source-agreements'
+  DetailPrint "Installing .NET 11 Desktop Runtime via winget..."
+  nsExec::ExecToLog '"$3" install --id Microsoft.DotNet.DesktopRuntime.11 -e --silent --accept-package-agreements --accept-source-agreements'
   Pop $0
   ${If} $0 != 0
     Call DotnetManual
@@ -308,7 +308,7 @@ Function EnsureDotnet
   ; Trust but verify - winget can report success without the runtime we actually need.
   Call DotnetPresent
   ${If} $DotnetFound != "1"
-    DetailPrint "winget reported success but no .NET 10 Desktop Runtime is present."
+    DetailPrint "winget reported success but no .NET 11 Desktop Runtime is present."
     Call DotnetManual
   ${EndIf}
   Return
@@ -344,7 +344,7 @@ Function DotnetManual
   ; /SD IDNO: NSIS does NOT suppress message boxes in silent mode, so without a silent default
   ; a /S install on a machine with no winget would block here forever on a dialog nobody can
   ; see - and an unattended run must never open a browser either.
-  MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_TOPMOST|MB_SETFOREGROUND "The minimal DisplayRotate build needs the .NET 10 Desktop Runtime (x64), and it isn't installed on this PC.$\n$\nOpen the download page now? DisplayRotate will finish installing either way, but it won't start until the runtime is there." /SD IDNO IDNO +2
+  MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_TOPMOST|MB_SETFOREGROUND "The minimal DisplayRotate build needs the .NET 11 Desktop Runtime (x64), and it isn't installed on this PC.$\n$\nOpen the download page now? DisplayRotate will finish installing either way, but it won't start until the runtime is there." /SD IDNO IDNO +2
   ExecShell "open" "${DOTNET_URL}"
 FunctionEnd
 !endif

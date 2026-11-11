@@ -278,7 +278,7 @@ public class SettingsJourneys
                 Latest = latest switch
                 {
                     "same" => Version.Parse(ProductInfo.Version),
-                    "newer" => Newer,
+                    "newer" => Newer(),
                     _ => null,
                 },
             };
@@ -286,7 +286,7 @@ public class SettingsJourneys
 
             Find<Button>(form, "Check now").PerformClick();
 
-            var expected = string.Format(System.Globalization.CultureInfo.InvariantCulture, status, ProductInfo.Version, latest == "newer" ? Newer.ToString(3) : "");
+            var expected = string.Format(System.Globalization.CultureInfo.InvariantCulture, status, ProductInfo.Version, latest == "newer" ? Newer().ToString(3) : "");
             Until(() => Controls(form).Any(c => c is Label { Text: var t } && t == expected), $"the status line to read '{expected}'");
             Assert.Equal(button, UpdateButton(form)?.Text);
             Assert.NotNull(UserState.Saved.LastUpdateCheckUtc);
@@ -299,7 +299,7 @@ public class SettingsJourneys
         OnSta(() =>
         {
             using var state = new UserState();
-            using var form = Open(AppSettings.Load(), Updater(new FakeReleases { Latest = Newer }));
+            using var form = Open(AppSettings.Load(), Updater(new FakeReleases { Latest = Newer() }));
             // The test host is a portable copy; this is what an installed one detects.
             typeof(SettingsForm).GetField("_install", Private)!
                 .SetValue(form, new InstallRecord(InstallScope.PerUser, AppContext.BaseDirectory, ReleaseAssets.Full));
@@ -307,7 +307,7 @@ public class SettingsJourneys
             Find<Button>(form, "Check now").PerformClick();
 
             Until(() => UpdateButton(form) is not null, "the update button");
-            Assert.Equal($"Update to {Newer.ToString(3)}", UpdateButton(form)!.Text);
+            Assert.Equal($"Update to {Newer().ToString(3)}", UpdateButton(form)!.Text);
             Assert.True(UpdateButton(form)!.Enabled);
         });
     }

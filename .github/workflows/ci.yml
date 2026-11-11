@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           # The SDK is chosen by global.json: setup-dotnet installs alongside what the image
           # ships and `dotnet` picks the newest, so a bare dotnet-version would pin nothing.
@@ -61,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
 
@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
 
@@ -136,7 +136,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
 
@@ -402,7 +402,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
 
@@ -412,7 +412,7 @@ jobs:
           dotnet publish src/DisplayRotate/DisplayRotate.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:Version=$env:VERSION -o publish-full
           if ($LASTEXITCODE -ne 0) { throw "publish failed" }
 
-      - name: Publish minimal (needs the .NET 10 Desktop Runtime)
+      - name: Publish minimal (needs the .NET 11 Desktop Runtime)
         shell: pwsh
         run: |
           dotnet publish src/DisplayRotate/DisplayRotate.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:DebugType=none -p:Version=$env:VERSION -o publish-min
@@ -472,7 +472,7 @@ jobs:
           |---|---|---|
           | [DisplayRotate-Setup-$v.exe]($base/DisplayRotate-Setup-$v.exe) - **not sure? take this one**; asks which build | $(Size "DisplayRotate-Setup-$v.exe") | nothing |
           | [DisplayRotate-Setup-$v-full.exe]($base/DisplayRotate-Setup-$v-full.exe) - runtime bundled | $(Size "DisplayRotate-Setup-$v-full.exe") | nothing |
-          | [DisplayRotate-Setup-$v-min.exe]($base/DisplayRotate-Setup-$v-min.exe) - tiny | $(Size "DisplayRotate-Setup-$v-min.exe") | .NET 10 Desktop Runtime (offered via winget) |
+          | [DisplayRotate-Setup-$v-min.exe]($base/DisplayRotate-Setup-$v-min.exe) - tiny | $(Size "DisplayRotate-Setup-$v-min.exe") | .NET 11 Desktop Runtime (offered via winget) |
 
           Installs for you only by default - no administrator rights needed. Choose "anyone who uses this computer" to install into Program Files.
 
@@ -481,7 +481,7 @@ jobs:
           | Download | Size | Needs |
           |---|---|---|
           | [DisplayRotate-$v.zip]($base/DisplayRotate-$v.zip) | $(Size "DisplayRotate-$v.zip") | nothing |
-          | [DisplayRotate-$v-min.zip]($base/DisplayRotate-$v-min.zip) | $(Size "DisplayRotate-$v-min.zip") | .NET 10 Desktop Runtime |
+          | [DisplayRotate-$v-min.zip]($base/DisplayRotate-$v-min.zip) | $(Size "DisplayRotate-$v-min.zip") | .NET 11 Desktop Runtime |
 
           ### Already installed?
 

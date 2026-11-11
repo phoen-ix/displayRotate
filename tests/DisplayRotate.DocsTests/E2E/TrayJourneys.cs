@@ -191,7 +191,7 @@ public class TrayJourneys
             tray.Releases.Latest = latest switch
             {
                 "same" => Version.Parse(ProductInfo.Version),
-                "newer" => Newer,
+                "newer" => Newer(),
                 _ => null,
             };
 
@@ -199,14 +199,14 @@ public class TrayJourneys
             Until(() => !tray.Updater.Busy, "the check");
 
             Assert.Equal("Updates", tray.Icon.BalloonTipTitle);
-            Assert.Equal(string.Format(System.Globalization.CultureInfo.InvariantCulture, text, ProductInfo.Version, latest == "newer" ? Newer.ToString(3) : ""), tray.Icon.BalloonTipText);
+            Assert.Equal(string.Format(System.Globalization.CultureInfo.InvariantCulture, text, ProductInfo.Version, latest == "newer" ? Newer().ToString(3) : ""), tray.Icon.BalloonTipText);
             Assert.Equal(icon, tray.Icon.BalloonTipIcon);
             Assert.NotNull(UserState.Saved.LastUpdateCheckUtc);
 
             // The menu is rebuilt on every click on the icon.
             tray.ClickIcon(MouseButtons.Right);
             var first = tray.Items[0];
-            Assert.Equal(latest == "newer", first.Text == $"Install DisplayRotate {Newer.ToString(3)}…");
+            Assert.Equal(latest == "newer", first.Text == $"Install DisplayRotate {Newer().ToString(3)}…");
             if (latest == "newer")
             {
                 Assert.True(first.Font.Bold && first.Enabled);
@@ -222,15 +222,15 @@ public class TrayJourneys
         {
             using var state = new UserState();
             using var tray = new Tray();
-            tray.Releases.Latest = Newer;
+            tray.Releases.Latest = Newer();
             tray.Item("Check for updates").PerformClick();
             Until(() => !tray.Updater.Busy, "the check");
             // The test host is a portable copy, as Updater.DetectInstall sees it.
-            var prompt = $"DisplayRotate {Newer.ToString(3)} is available.\n\nThis copy was not installed, so it can't update itself. Open the download page?";
+            var prompt = $"DisplayRotate {Newer().ToString(3)} is available.\n\nThis copy was not installed, so it can't update itself. Open the download page?";
 
             Assert.Equal(prompt, AnswerMessageBox(tray.ClickBalloon, DialogResult.No));
             tray.ClickIcon(MouseButtons.Right);
-            Assert.Equal(prompt, AnswerMessageBox(() => tray.Item($"Install DisplayRotate {Newer.ToString(3)}…").PerformClick(), DialogResult.No));
+            Assert.Equal(prompt, AnswerMessageBox(() => tray.Item($"Install DisplayRotate {Newer().ToString(3)}…").PerformClick(), DialogResult.No));
 
             Assert.False(tray.Updater.Busy || tray.Updater.Installing);
         });
@@ -262,7 +262,7 @@ public class TrayJourneys
         {
             using var state = new UserState(s => s.UpdateCheck = mode);
             using var tray = new Tray();
-            tray.Releases.Latest = Newer;
+            tray.Releases.Latest = Newer();
 
             // What the hourly timer runs; the second is not due, as the first stamped the time.
             for (var hour = 0; hour < 2; hour++)
@@ -275,7 +275,7 @@ public class TrayJourneys
             Assert.Equal(checks, tray.Releases.Checks);
             if (checks > 0)
             {
-                Assert.Equal($"DisplayRotate {Newer.ToString(3)} is available", tray.Icon.BalloonTipTitle);
+                Assert.Equal($"DisplayRotate {Newer().ToString(3)} is available", tray.Icon.BalloonTipTitle);
                 Assert.NotNull(UserState.Saved.LastUpdateCheckUtc);
             }
         });

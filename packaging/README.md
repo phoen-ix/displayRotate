@@ -16,7 +16,7 @@ here as `DisplayRotate.exe` and `DisplayRotate-min.exe`. Then they run:
 ```
 makensis -WX -V2 -DVERSION=<v> displayrotate.nsi                 -> DisplayRotate-Setup-<v>.exe       (asks which build)
 makensis -WX -V2 -DVERSION=<v> -DFULL_ONLY displayrotate.nsi     -> DisplayRotate-Setup-<v>-full.exe  (self-contained)
-makensis -WX -V2 -DVERSION=<v> -DMINIMAL_ONLY displayrotate.nsi  -> DisplayRotate-Setup-<v>-min.exe   (needs .NET 10)
+makensis -WX -V2 -DVERSION=<v> -DMINIMAL_ONLY displayrotate.nsi  -> DisplayRotate-Setup-<v>-min.exe   (needs .NET 11)
 ```
 
 `-WX` turns every warning into an error, and an unreferenced function counts as one. That is
@@ -69,7 +69,7 @@ asked about, so a test checks that each one is read here.
   orphaned. `BuildVariant` (`full`/`min`) is recorded for the updater.
 - **The .NET check** reads `HKLM\SOFTWARE\dotnet\Setup\InstalledVersions\x64` in the 32-bit view.
   That is where the host records it, and it is WinLogRotate's fix; pawse reads the 64-bit view.
-  The check asks before running `winget` (about 57 MB, machine-wide) and verifies the runtime
+  The check asks before running `winget` (about 59 MB, machine-wide) and verifies the runtime
   is there afterwards.
 - **No autostart section.** In an elevated per-machine install it would write the admin's HKCU,
   and a silent upgrade would turn autostart back on for anyone who had turned it off. The app

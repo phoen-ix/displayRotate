@@ -17,14 +17,11 @@ internal static class Harness
     public const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
 
     /// <summary>A release one minor above this build (scripts/e2e.sh builds 9.9.9).</summary>
-    public static Version Newer
+    public static Version Newer()
     {
-        get
-        {
-            Assert.False(ProductInfo.IsDevBuild, "a 0.0.0 build is never offered an update; run scripts/e2e.sh");
-            var current = Version.Parse(ProductInfo.Version);
-            return new Version(current.Major, current.Minor + 1, 0);
-        }
+        Assert.False(ProductInfo.IsDevBuild, "a 0.0.0 build is never offered an update; run scripts/e2e.sh");
+        var current = Version.Parse(ProductInfo.Version);
+        return new Version(current.Major, current.Minor + 1, 0);
     }
 
     public static object? Get(object owner, string field) =>

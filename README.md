@@ -8,7 +8,7 @@ hotkeys to any display and angle, and have your preferred orientations come back
 
 **Status:** actively developed (0.1.x); every release is on the [releases page](https://github.com/phoen-ix/displayRotate/releases).
 
-A native Windows app (C# / .NET 10, WinForms), using the same Win32 display API the Settings
+A native Windows app (C# / .NET 11, WinForms), using the same Win32 display API the Settings
 app does (`ChangeDisplaySettingsEx`).
 
 ## Install
@@ -36,12 +36,12 @@ and suggests the one that needs nothing.
 | --- | --- | --- |
 | **`DisplayRotate-Setup-<version>.exe`** | ~41 MB | No. It asks which of the two builds below to install. |
 | **`DisplayRotate-Setup-<version>-full.exe`** | ~41 MB | **No.** All-in-one, with the runtime inside. |
-| **`DisplayRotate-Setup-<version>-min.exe`** | ~0.2 MB | Yes: the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64), which the installer offers to fetch through `winget`. |
+| **`DisplayRotate-Setup-<version>-min.exe`** | ~0.2 MB | Yes: the [.NET 11 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/11.0) (x64), which the installer offers to fetch through `winget`. |
 
 | Portable | Size | Needs anything installed? |
 | --- | --- | --- |
 | **`DisplayRotate-<version>.zip`** | ~42 MB | **No.** The runtime is bundled. |
-| **`DisplayRotate-<version>-min.zip`** | ~0.1 MB | Yes: the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64). |
+| **`DisplayRotate-<version>-min.zip`** | ~0.1 MB | Yes: the [.NET 11 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/11.0) (x64). |
 
 It is the same app in every row.
 - The full build is self-contained and compressed.
@@ -151,7 +151,7 @@ An administrator can switch checks off machine-wide (see [docs/updating.md](docs
 
 ## Build from source
 
-The .NET 10 SDK builds the solution on Windows or Linux (Linux via `EnableWindowsTargeting`;
+The .NET 11 SDK builds the solution on Windows or Linux (Linux via `EnableWindowsTargeting`;
 the exe runs on Windows only):
 
 ```sh
